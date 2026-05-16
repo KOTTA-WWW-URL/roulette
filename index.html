@@ -763,7 +763,7 @@
       const decelDuration = 1000 + Math.random() * 4000; // 1–5 s decelerate
       const totalDuration = constDuration + decelDuration;
 
-      const speed   = 1.5; // deg/ms during constant phase (~4 rps)
+      const speed    = 1.5; // deg/ms during constant phase (~4 rps)
       const sliceDeg = 360 / items.length;
 
       // Degrees covered during constant phase
@@ -771,16 +771,34 @@
       const afterConst = rotation + constDeg;
 
       // Pick winning segment and compute exact stop angle
-      const selected       = Math.floor(Math.random() * items.length);
-      const selectedCenter = selected * sliceDeg + sliceDeg / 2;
+      const selected        = Math.floor(Math.random() * items.length);
+      const selectedCenter  = selected * sliceDeg + sliceDeg / 2;
       const targetAtPointer = 360 - selectedCenter;
 
       const currentMod = afterConst % 360;
       let extraDeg = (targetAtPointer - currentMod + 360) % 360;
-      if (extraDeg < 90) extraDeg += 360; // at least a quarter-turn of decel arc
+      if (extraDeg < 90) extraDeg += 360;
 
       const decelStartRot = afterConst;
       const decelEndRot   = afterConst + extraDeg;
+
+      // --- Smooth phase transition ---
+      // The decel easing is: pos(t) = D * (1 - (1-t)^5)
+      // Its derivative (speed) at t=0 is: 5 * D / decelDuration
+      // We want that to equal `speed` (deg/ms), so we scale D accordingly.
+      // D_natural = extraDeg, but we allow it to flex via an extra full turn.
+      // Instead, we embed the velocity match into the easing itself:
+      // Use a custom ease: blend from linear→quartic over the decel phase.
+      // v0 = speed (deg/ms), vf = 0, total decel distance = extraDeg
+      // pos(t) = v0*decelDuration*t + (extraDeg - v0*decelDuration)*t^2*(3-2t) ... hermite
+      // Hermite: p(t) = (2t³-3t²+1)*p0 + (t³-2t²+t)*m0 + (-2t³+3t²)*p1 + (t³-t²)*m1
+      // p0=0, p1=extraDeg, m0=v0*decelDuration, m1=0
+      const m0 = speed * decelDuration; // tangent at start (scaled to [0,1] t-space)
+
+      function hermiteDecel(t) {
+        const t2 = t * t, t3 = t2 * t;
+        return (t3 - 2*t2 + t) * m0 + (-2*t3 + 3*t2) * extraDeg;
+      }
 
       const startTime = performance.now();
       let lastAngle   = rotation % 360;
@@ -792,9 +810,8 @@
         if (elapsed < constDuration) {
           currentRot = rotation + speed * elapsed;
         } else if (elapsed < totalDuration) {
-          const t     = (elapsed - constDuration) / decelDuration;
-          const eased = 1 - (1 - t) * (1 - t) * (1 - t) * (1 - t); // quartic ease-out (very gradual)
-          currentRot  = decelStartRot + (decelEndRot - decelStartRot) * eased;
+          const t    = (elapsed - constDuration) / decelDuration;
+          currentRot = decelStartRot + hermiteDecel(Math.min(t, 1));
         } else {
           currentRot = decelEndRot;
         }
@@ -809,7 +826,7 @@
         if (currIdx !== prevIdx) {
           const intensity = elapsed < constDuration
             ? 1.0
-            : Math.max(0.25, 1 - (elapsed - constDuration) / decelDuration);
+            : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration);
           playTick(intensity);
           pointer.classList.add("tick");
           setTimeout(() => pointer.classList.remove("tick"), 50);
@@ -823,9 +840,10 @@
           spinning = false;
           resultText.textContent = items[selected];
           renderItems();
+          // Sound and overlay fire immediately when wheel stops
           playFanfare();
           launchConfetti();
-          revealTimer = window.setTimeout(() => showResultOverlay(items[selected]), 600);
+          showResultOverlay(items[selected]);
         }
       }
 
