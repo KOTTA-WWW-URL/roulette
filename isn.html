@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Decision Roulette</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f7fb;
+      --panel: #ffffff;
+      --ink: #172033;
+      --muted: #667085;
+      --line: #d9deea;
+      --accent: #0f8b8d;
+      --accent-dark: #0a6263;
+      --danger: #c2410c;
+      --shadow: 0 18px 48px rgba(23, 32, 51, 0.14);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background:
+        linear-gradient(135deg, rgba(15, 139, 141, 0.12), transparent 32%),
+        linear-gradient(315deg, rgba(241, 143, 1, 0.12), transparent 34%),
+        var(--bg);
+      color: var(--ink);
+    }
+
+    body.result-open {
+      overflow: hidden;
+    }
+
+    button,
+    input,
+    textarea {
+      font: inherit;
+    }
+
+    .app {
+      width: min(1120px, calc(100% - 32px));
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 32px 0;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) 360px;
+      gap: 28px;
+      align-items: center;
+    }
+
+    .roulette-area {
+      display: grid;
+      gap: 22px;
+      justify-items: center;
+    }
+
+    .title {
+      width: min(620px, 100%);
+    }
+
+    .title h1 {
+      margin: 0 0 8px;
+      font-size: clamp(2rem, 5vw, 4.5rem);
+      line-height: 0.95;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 1rem;
+      line-height: 1.7;
+    }
+
+    .wheel-wrap {
+      position: relative;
+      width: min(560px, 88vw);
+      aspect-ratio: 1;
+      display: grid;
+      place-items: center;
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      filter: drop-shadow(var(--shadow));
+      transition: transform 4.6s cubic-bezier(0.12, 0.76, 0.12, 1);
+    }
+
+    .pointer {
+      position: absolute;
+      top: -2px;
+      left: 50%;
+      width: 0;
+      height: 0;
+      transform: translateX(-50%);
+      border-left: 18px solid transparent;
+      border-right: 18px solid transparent;
+      border-top: 34px solid #172033;
+      z-index: 3;
+      filter: drop-shadow(0 5px 8px rgba(23, 32, 51, 0.24));
+    }
+
+    .hub {
+      position: absolute;
+      width: 86px;
+      aspect-ratio: 1;
+      border: 8px solid #fff;
+      border-radius: 50%;
+      background: var(--ink);
+      box-shadow: 0 10px 24px rgba(23, 32, 51, 0.24);
+      display: grid;
+      place-items: center;
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0;
+      z-index: 2;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease;
+      user-select: none;
+    }
+
+    .hub:hover {
+      transform: scale(1.05);
+    }
+
+    .hub:disabled {
+      cursor: not-allowed;
+      opacity: 0.62;
+      transform: none;
+    }
+
+    .result {
+      min-height: 76px;
+      width: min(620px, 100%);
+      padding: 18px 22px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.72);
+      backdrop-filter: blur(12px);
+      display: grid;
+      align-content: center;
+      gap: 3px;
+    }
+
+    .result small {
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .result strong {
+      font-size: clamp(1.4rem, 4vw, 2.4rem);
+      line-height: 1.1;
+      overflow-wrap: anywhere;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 18px 48px rgba(23, 32, 51, 0.1);
+      padding: 18px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .panel h2 {
+      margin: 0;
+      font-size: 1.1rem;
+    }
+
+    .auth-box {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .auth-button {
+      min-height: 40px;
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--ink);
+      color: #fff;
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .auth-button.secondary {
+      background: #fff;
+      color: var(--ink);
+    }
+
+    .auth-status {
+      min-height: 20px;
+      color: var(--muted);
+      font-size: 0.88rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+    }
+
+    .auth-signed-in {
+      display: none;
+      gap: 8px;
+    }
+
+    .auth-box.is-signed-in #anonymousLoginButton {
+      display: none;
+    }
+
+    .auth-box.is-signed-in .auth-signed-in {
+      display: grid;
+    }
+
+    .save-manager {
+      display: grid;
+      gap: 10px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+    }
+
+    .save-manager label {
+      color: var(--muted);
+      font-size: 0.86rem;
+      font-weight: 800;
+    }
+
+    .save-select,
+    .save-name {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+    }
+
+    .save-select:focus,
+    .save-name:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.16);
+    }
+
+    .save-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .save-button {
+      min-height: 40px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 800;
+    }
+
+    .save-button.danger {
+      color: var(--danger);
+      background: #fff7f3;
+    }
+
+    .save-button:disabled,
+    .save-select:disabled,
+    .save-name:disabled {
+      cursor: not-allowed;
+      opacity: 0.56;
+    }
+
+    .bulk-input {
+      width: 100%;
+      min-height: 118px;
+      resize: vertical;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 12px 13px;
+      background: #fff;
+      color: var(--ink);
+      outline: none;
+      line-height: 1.5;
+    }
+
+    .bulk-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.16);
+    }
+
+    .spin-button {
+      border: 0;
+      cursor: pointer;
+      transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+    }
+
+    .spin-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .items {
+      display: grid;
+      gap: 8px;
+      max-height: 308px;
+      overflow: auto;
+      padding-right: 2px;
+    }
+
+    .item {
+      display: grid;
+      grid-template-columns: 26px 1fr 34px;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+
+    .swatch {
+      width: 20px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.18);
+    }
+
+    .item input {
+      width: 100%;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      color: var(--ink);
+      background: transparent;
+      padding: 6px 0;
+    }
+
+    .remove {
+      width: 34px;
+      height: 34px;
+      border: 0;
+      border-radius: 8px;
+      background: #fff1eb;
+      color: var(--danger);
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .spin-button {
+      width: 100%;
+      min-height: 54px;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.05rem;
+    }
+
+    .spin-button:disabled {
+      opacity: 0.52;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .sub-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+
+    .ghost {
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .result-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: rgba(9, 16, 30, 0.58);
+      backdrop-filter: blur(8px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+
+    .result-overlay.is-visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .result-pop {
+      width: min(760px, 100%);
+      min-height: 260px;
+      border: 1px solid rgba(255, 255, 255, 0.58);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: 0 26px 80px rgba(9, 16, 30, 0.28);
+      display: grid;
+      place-items: center;
+      gap: 12px;
+      padding: 36px;
+      text-align: center;
+      transform: scale(0.92);
+      transition: transform 0.22s ease;
+    }
+
+    .result-overlay.is-visible .result-pop {
+      transform: scale(1);
+    }
+
+    .result-pop small {
+      color: var(--muted);
+      font-weight: 900;
+    }
+
+    .result-pop strong {
+      width: 100%;
+      font-size: clamp(3.2rem, 11vw, 7.6rem);
+      line-height: 1;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        grid-template-columns: 1fr;
+        align-items: start;
+        padding: 24px 0;
+      }
+
+      .title {
+        text-align: center;
+      }
+
+      .panel {
+        width: min(620px, 100%);
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <section class="roulette-area" aria-label="ルーレット">
+      <div class="title">
+        <h1>Decision Roulette</h1>
+        <p>迷ったときに、候補を入れて回すだけ。会議、献立、順番決め、今日やることに使えます。</p>
+      </div>
+
+      <div class="wheel-wrap">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" width="900" height="900" aria-label="候補のルーレット"></canvas>
+        <button class="hub" id="hubSpin" type="button" aria-label="ルーレットを回す">SPIN</button>
+      </div>
+
+      <div class="result" aria-live="polite">
+        <small>結果</small>
+        <strong id="resultText">まだ回していません</strong>
+      </div>
+    </section>
+
+    <aside class="panel" aria-label="候補の編集">
+      <h2>候補</h2>
+
+      <section class="auth-box" id="authBox" aria-label="ログイン">
+        <button class="auth-button" id="anonymousLoginButton" type="button">この端末で保存を始める</button>
+        <div class="auth-signed-in">
+          <div class="auth-status" id="userLabel"></div>
+          <button class="auth-button secondary" id="logoutButton" type="button">ログアウト</button>
+        </div>
+        <div class="auth-status" id="authStatus">この端末のブラウザに候補を保存できます。</div>
+      </section>
+
+      <section class="save-manager" aria-label="保存データ">
+        <label for="rouletteSelect">保存データ</label>
+        <select class="save-select" id="rouletteSelect" disabled>
+          <option>未保存</option>
+        </select>
+        <input class="save-name" id="newRouletteName" type="text" maxlength="24" placeholder="新しい保存名" disabled>
+        <div class="save-actions">
+          <button class="save-button" id="createRouletteButton" type="button" disabled>新規保存</button>
+          <button class="save-button danger" id="deleteRouletteButton" type="button" disabled>削除</button>
+        </div>
+      </section>
+
+      <textarea class="bulk-input" id="bulkItems" maxlength="320" spellcheck="false" placeholder="1行につき1候補"></textarea>
+
+      <div class="items" id="items"></div>
+
+      <button class="spin-button" id="spinButton" type="button">回す</button>
+
+      <div class="sub-actions">
+        <button class="ghost" id="shuffleButton" type="button">並び替え</button>
+        <button class="ghost" id="resetButton" type="button">初期化</button>
+      </div>
+    </aside>
+  </main>
+
+  <button class="result-overlay" id="resultOverlay" type="button" aria-label="結果を閉じる">
+    <span class="result-pop">
+      <small>結果</small>
+      <strong id="bigResultText"></strong>
+    </span>
+  </button>
+
+  <script type="module">
+    const canvas = document.getElementById("wheel");
+    const ctx = canvas.getContext("2d");
+    const itemsEl = document.getElementById("items");
+    const resultText = document.getElementById("resultText");
+    const spinButton = document.getElementById("spinButton");
+    const hubSpin = document.getElementById("hubSpin");
+    const resultOverlay = document.getElementById("resultOverlay");
+    const bigResultText = document.getElementById("bigResultText");
+    const bulkItems = document.getElementById("bulkItems");
+    const shuffleButton = document.getElementById("shuffleButton");
+    const resetButton = document.getElementById("resetButton");
+    const authBox = document.getElementById("authBox");
+    const anonymousLoginButton = document.getElementById("anonymousLoginButton");
+    const logoutButton = document.getElementById("logoutButton");
+    const authStatus = document.getElementById("authStatus");
+    const userLabel = document.getElementById("userLabel");
+    const rouletteSelect = document.getElementById("rouletteSelect");
+    const newRouletteName = document.getElementById("newRouletteName");
+    const createRouletteButton = document.getElementById("createRouletteButton");
+    const deleteRouletteButton = document.getElementById("deleteRouletteButton");
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyDekw8rSjt_0YHeBMCvBLWEH0vNyBtDTqk",
+      authDomain: "roulette-edb61.firebaseapp.com",
+      projectId: "roulette-edb61",
+      storageBucket: "roulette-edb61.firebasestorage.app",
+      messagingSenderId: "725020414783",
+      appId: "1:725020414783:web:3508ac42cb5ead929bf98a",
+      measurementId: "G-GKVTEGVSN2"
+    };
+
+    const defaultItems = ["ランチ", "散歩", "読書", "掃除", "映画", "勉強"];
+    const colors = ["#0f8b8d", "#f18f01", "#7c3aed", "#e11d48", "#2563eb", "#16a34a", "#ea580c", "#0891b2"];
+
+    let items = [...defaultItems];
+    let rotation = 0;
+    let spinning = false;
+    let revealTimer = 0;
+    let firebaseApi = null;
+    let auth = null;
+    let db = null;
+    let currentUser = null;
+    let roulettes = [];
+    let activeRouletteId = null;
+    let unsubscribeRoulettes = null;
+    let unsubscribeItems = null;
+    let saveTimer = 0;
+    let applyingRemoteItems = false;
+    let creatingInitialRoulette = false;
+
+    function drawWheel() {
+      const size = canvas.width;
+      const center = size / 2;
+      const radius = center - 34;
+      ctx.clearRect(0, 0, size, size);
+
+      if (items.length === 0) {
+        ctx.beginPath();
+        ctx.arc(center, center, radius, 0, Math.PI * 2);
+        ctx.fillStyle = "#e6eaf2";
+        ctx.fill();
+        ctx.fillStyle = "#667085";
+        ctx.font = "700 42px system-ui, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("候補を追加", center, center);
+        return;
+      }
+
+      const slice = (Math.PI * 2) / items.length;
+
+      items.forEach((label, index) => {
+        const start = index * slice - Math.PI / 2;
+        const end = start + slice;
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, start, end);
+        ctx.closePath();
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.8)";
+        ctx.lineWidth = 6;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(start + slice / 2);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#fff";
+        ctx.font = "800 34px system-ui, sans-serif";
+        fitText(label, radius - 42, 0, radius * 0.58);
+        ctx.restore();
+      });
+
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 12;
+      ctx.stroke();
+    }
+
+    function fitText(text, x, y, maxWidth) {
+      let label = text;
+      while (ctx.measureText(label).width > maxWidth && label.length > 1) {
+        label = label.slice(0, -2) + "…";
+      }
+      ctx.fillText(label, x, y);
+    }
+
+    function renderItems() {
+      itemsEl.innerHTML = "";
+      items.forEach((item, index) => {
+        const row = document.createElement("div");
+        row.className = "item";
+
+        const swatch = document.createElement("span");
+        swatch.className = "swatch";
+        swatch.style.background = colors[index % colors.length];
+
+        const input = document.createElement("input");
+        input.value = item;
+        input.maxLength = 24;
+        input.ariaLabel = `${index + 1}番目の候補`;
+        input.addEventListener("input", () => {
+          items[index] = input.value.trim() || `候補${index + 1}`;
+          syncBulkInput();
+          drawWheel();
+          queueSaveItems();
+        });
+
+        const remove = document.createElement("button");
+        remove.className = "remove";
+        remove.type = "button";
+        remove.textContent = "×";
+        remove.title = "削除";
+        remove.ariaLabel = `${item}を削除`;
+        remove.addEventListener("click", () => {
+          items.splice(index, 1);
+          syncBulkInput();
+          render();
+          queueSaveItems();
+        });
+
+        row.append(swatch, input, remove);
+        itemsEl.append(row);
+      });
+
+      const disabled = items.length < 2 || spinning;
+      spinButton.disabled = disabled;
+      hubSpin.disabled = disabled;
+    }
+
+    function render() {
+      renderItems();
+      drawWheel();
+    }
+
+    function getItemsFromText(value) {
+      return value
+        .split(/\r?\n/)
+        .map((item) => item.trim())
+        .filter(Boolean)
+        .map((item) => item.slice(0, 24));
+    }
+
+    function syncBulkInput() {
+      bulkItems.value = items.join("\n");
+    }
+
+    function renderRouletteControls() {
+      const signedIn = Boolean(currentUser);
+      rouletteSelect.disabled = !signedIn || roulettes.length === 0;
+      newRouletteName.disabled = !signedIn;
+      createRouletteButton.disabled = !signedIn;
+      deleteRouletteButton.disabled = !signedIn || roulettes.length <= 1 || !activeRouletteId;
+
+      rouletteSelect.innerHTML = "";
+      if (roulettes.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = signedIn ? "読み込み中" : "未保存";
+        rouletteSelect.append(option);
+        return;
+      }
+
+      roulettes.forEach((roulette) => {
+        const option = document.createElement("option");
+        option.value = roulette.id;
+        option.textContent = roulette.name || "名称未設定";
+        rouletteSelect.append(option);
+      });
+      rouletteSelect.value = activeRouletteId || roulettes[0].id;
+    }
+
+    function hideResultOverlay() {
+      window.clearTimeout(revealTimer);
+      resultOverlay.classList.remove("is-visible");
+      document.body.classList.remove("result-open");
+    }
+
+    function showResultOverlay(value) {
+      bigResultText.textContent = value;
+      resultOverlay.classList.add("is-visible");
+      document.body.classList.add("result-open");
+    }
+
+    function hasFirebaseConfig() {
+      return Boolean(
+        firebaseConfig.apiKey &&
+        firebaseConfig.authDomain &&
+        firebaseConfig.projectId &&
+        firebaseConfig.appId
+      );
+    }
+
+    function setAuthStatus(message) {
+      authStatus.textContent = message;
+    }
+
+    function getUserRoulettesRef(user) {
+      return firebaseApi.collection(db, "users", user.uid, "roulette");
+    }
+
+    function getUserItemsRef(user, rouletteId = activeRouletteId) {
+      return firebaseApi.doc(db, "users", user.uid, "roulette", rouletteId);
+    }
+
+    function queueSaveItems() {
+      if (!currentUser || !firebaseApi || !activeRouletteId || applyingRemoteItems) return;
+      const user = currentUser;
+      const rouletteId = activeRouletteId;
+      const itemsToSave = [...items];
+      window.clearTimeout(saveTimer);
+      saveTimer = window.setTimeout(async () => {
+        try {
+          await firebaseApi.setDoc(getUserItemsRef(user, rouletteId), {
+            items: itemsToSave,
+            updatedAt: firebaseApi.serverTimestamp()
+          }, { merge: true });
+          setAuthStatus("保存しました。");
+        } catch (error) {
+          setAuthStatus(`保存に失敗しました: ${error.message}`);
+        }
+      }, 350);
+    }
+
+    function startUserItemsSync(user, rouletteId) {
+      if (unsubscribeItems) unsubscribeItems();
+      unsubscribeItems = firebaseApi.onSnapshot(getUserItemsRef(user, rouletteId), (snapshot) => {
+        const savedItems = snapshot.data()?.items;
+        if (!Array.isArray(savedItems)) {
+          queueSaveItems();
+          return;
+        }
+
+        applyingRemoteItems = true;
+        items = savedItems
+          .filter((item) => typeof item === "string" && item.trim())
+          .map((item) => item.trim().slice(0, 24));
+        syncBulkInput();
+        resultText.textContent = "まだ回していません";
+        hideResultOverlay();
+        render();
+        applyingRemoteItems = false;
+        setAuthStatus("保存済みの候補を読み込みました。");
+      }, (error) => {
+        setAuthStatus(`読み込みに失敗しました: ${error.message}`);
+      });
+    }
+
+    async function createRoulette(name = "") {
+      if (!currentUser || !firebaseApi) return;
+      const cleanName = name.trim().slice(0, 24) || `ルーレット ${roulettes.length + 1}`;
+      try {
+        const docRef = await firebaseApi.addDoc(getUserRoulettesRef(currentUser), {
+          name: cleanName,
+          items: [...items],
+          createdAt: firebaseApi.serverTimestamp(),
+          updatedAt: firebaseApi.serverTimestamp()
+        });
+        activeRouletteId = docRef.id;
+        newRouletteName.value = "";
+        setAuthStatus(`${cleanName}を作成しました。`);
+        renderRouletteControls();
+        startUserItemsSync(currentUser, activeRouletteId);
+      } catch (error) {
+        setAuthStatus(`作成に失敗しました: ${error.message}`);
+      }
+    }
+
+    async function deleteActiveRoulette() {
+      if (!currentUser || !activeRouletteId || roulettes.length <= 1) return;
+      const deletingId = activeRouletteId;
+      const nextRoulette = roulettes.find((roulette) => roulette.id !== deletingId);
+      try {
+        await firebaseApi.deleteDoc(getUserItemsRef(currentUser, deletingId));
+        activeRouletteId = nextRoulette?.id || null;
+        if (activeRouletteId) startUserItemsSync(currentUser, activeRouletteId);
+        setAuthStatus("削除しました。");
+        renderRouletteControls();
+      } catch (error) {
+        setAuthStatus(`削除に失敗しました: ${error.message}`);
+      }
+    }
+
+    function startRoulettesSync(user) {
+      if (unsubscribeRoulettes) unsubscribeRoulettes();
+      const roulettesQuery = firebaseApi.query(
+        getUserRoulettesRef(user),
+        firebaseApi.orderBy("updatedAt", "desc")
+      );
+
+      unsubscribeRoulettes = firebaseApi.onSnapshot(roulettesQuery, (snapshot) => {
+        roulettes = snapshot.docs.map((docSnapshot) => ({
+          id: docSnapshot.id,
+          name: docSnapshot.data().name,
+          items: docSnapshot.data().items
+        }));
+
+        if (roulettes.length === 0) {
+          renderRouletteControls();
+          if (!creatingInitialRoulette) {
+            creatingInitialRoulette = true;
+            createRoulette("デフォルト").finally(() => {
+              creatingInitialRoulette = false;
+            });
+          }
+          return;
+        }
+
+        const activeExists = roulettes.some((roulette) => roulette.id === activeRouletteId);
+        if (!activeRouletteId || !activeExists) {
+          activeRouletteId = roulettes[0].id;
+          startUserItemsSync(user, activeRouletteId);
+        }
+
+        renderRouletteControls();
+      }, (error) => {
+        setAuthStatus(`保存データの読み込みに失敗しました: ${error.message}`);
+      });
+    }
+
+    async function setupFirebase() {
+      if (!hasFirebaseConfig()) return;
+
+      try {
+        const [{ initializeApp }, authModule, firestoreModule] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"),
+          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js")
+        ]);
+
+        firebaseApi = {
+          ...authModule,
+          ...firestoreModule
+        };
+
+        const app = initializeApp(firebaseConfig);
+        auth = authModule.getAuth(app);
+        db = firestoreModule.getFirestore(app);
+
+        authModule.onAuthStateChanged(auth, (user) => {
+          currentUser = user;
+          authBox.classList.toggle("is-signed-in", Boolean(user));
+
+          if (!user) {
+            if (unsubscribeRoulettes) unsubscribeRoulettes();
+            if (unsubscribeItems) unsubscribeItems();
+            unsubscribeRoulettes = null;
+            unsubscribeItems = null;
+            roulettes = [];
+            activeRouletteId = null;
+            userLabel.textContent = "";
+            renderRouletteControls();
+            setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
+            return;
+          }
+
+          userLabel.textContent = "この端末で保存中";
+          setAuthStatus("保存データを読み込んでいます。");
+          startRoulettesSync(user);
+        });
+
+        setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
+      } catch (error) {
+        setAuthStatus(`Firebaseの読み込みに失敗しました: ${error.message}`);
+      }
+    }
+
+    async function signInAnonymouslyForDevice() {
+      if (!auth) {
+        setAuthStatus("先にFirebase設定を入力してください。");
+        return;
+      }
+
+      try {
+        await firebaseApi.signInAnonymously(auth);
+      } catch (error) {
+        setAuthStatus(`保存開始に失敗しました: ${error.message}`);
+      }
+    }
+
+    function spin() {
+      if (spinning || items.length < 2) return;
+
+      spinning = true;
+      spinButton.disabled = true;
+      hubSpin.disabled = true;
+      hideResultOverlay();
+      resultText.textContent = "回転中...";
+
+      const selected = Math.floor(Math.random() * items.length);
+      const sliceDeg = 360 / items.length;
+      const selectedCenter = selected * sliceDeg + sliceDeg / 2;
+      const targetAtPointer = 360 - selectedCenter;
+      const extraTurns = 5 + Math.floor(Math.random() * 4);
+      rotation += extraTurns * 360 + targetAtPointer - (rotation % 360);
+
+      canvas.style.transform = `rotate(${rotation}deg)`;
+
+      window.setTimeout(() => {
+        spinning = false;
+        resultText.textContent = items[selected];
+        renderItems();
+        revealTimer = window.setTimeout(() => {
+          showResultOverlay(items[selected]);
+        }, 1000);
+      }, 4700);
+    }
+
+    bulkItems.addEventListener("input", () => {
+      items = getItemsFromText(bulkItems.value);
+      resultText.textContent = "まだ回していません";
+      hideResultOverlay();
+      render();
+      queueSaveItems();
+    });
+
+    spinButton.addEventListener("click", spin);
+    hubSpin.addEventListener("click", spin);
+    resultOverlay.addEventListener("click", hideResultOverlay);
+    anonymousLoginButton.addEventListener("click", signInAnonymouslyForDevice);
+    logoutButton.addEventListener("click", () => firebaseApi?.signOut(auth));
+    createRouletteButton.addEventListener("click", () => createRoulette(newRouletteName.value));
+    deleteRouletteButton.addEventListener("click", deleteActiveRoulette);
+    rouletteSelect.addEventListener("change", () => {
+      activeRouletteId = rouletteSelect.value;
+      resultText.textContent = "まだ回していません";
+      hideResultOverlay();
+      startUserItemsSync(currentUser, activeRouletteId);
+      renderRouletteControls();
+    });
+
+    shuffleButton.addEventListener("click", () => {
+      items = items
+        .map((value) => ({ value, sort: Math.random() }))
+        .sort((a, b) => a.sort - b.sort)
+        .map(({ value }) => value);
+      syncBulkInput();
+      render();
+      queueSaveItems();
+    });
+
+    resetButton.addEventListener("click", () => {
+      items = [...defaultItems];
+      resultText.textContent = "まだ回していません";
+      rotation = 0;
+      canvas.style.transform = "rotate(0deg)";
+      hideResultOverlay();
+      syncBulkInput();
+      render();
+      queueSaveItems();
+    });
+
+    syncBulkInput();
+    render();
+    renderRouletteControls();
+    setupFirebase();
+  </script>
+</body>
+</html>
