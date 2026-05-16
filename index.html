@@ -793,7 +793,7 @@
           currentRot = rotation + speed * elapsed;
         } else if (elapsed < totalDuration) {
           const t     = (elapsed - constDuration) / decelDuration;
-          const eased = 1 - (1 - t) * (1 - t); // quadratic ease-out
+          const eased = 1 - (1 - t) * (1 - t) * (1 - t) * (1 - t); // quartic ease-out (very gradual)
           currentRot  = decelStartRot + (decelEndRot - decelStartRot) * eased;
         } else {
           currentRot = decelEndRot;
