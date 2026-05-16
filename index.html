@@ -18,9 +18,7 @@
       --shadow: 0 18px 48px rgba(23, 32, 51, 0.14);
     }
 
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -33,15 +31,9 @@
       color: var(--ink);
     }
 
-    body.result-open {
-      overflow: hidden;
-    }
+    body.result-open { overflow: hidden; }
 
-    button,
-    input,
-    textarea {
-      font: inherit;
-    }
+    button, input, textarea { font: inherit; }
 
     .app {
       width: min(1120px, calc(100% - 32px));
@@ -60,15 +52,12 @@
       justify-items: center;
     }
 
-    .title {
-      width: min(620px, 100%);
-    }
+    .title { width: min(620px, 100%); }
 
     .title h1 {
       margin: 0 0 8px;
       font-size: clamp(2rem, 5vw, 4.5rem);
       line-height: 0.95;
-      letter-spacing: 0;
     }
 
     .title p {
@@ -105,7 +94,10 @@
       border-top: 34px solid #172033;
       z-index: 3;
       filter: drop-shadow(0 5px 8px rgba(23, 32, 51, 0.24));
+      transition: transform 0.05s ease;
     }
+
+    .pointer.tick { transform: translateX(-50%) scaleY(1.18) translateY(-3px); }
 
     .hub {
       position: absolute;
@@ -120,22 +112,14 @@
       color: #fff;
       font-size: 0.78rem;
       font-weight: 800;
-      letter-spacing: 0;
       z-index: 2;
       cursor: pointer;
       transition: transform 0.15s ease, opacity 0.15s ease;
       user-select: none;
     }
 
-    .hub:hover {
-      transform: scale(1.05);
-    }
-
-    .hub:disabled {
-      cursor: not-allowed;
-      opacity: 0.62;
-      transform: none;
-    }
+    .hub:hover { transform: scale(1.05); }
+    .hub:disabled { cursor: not-allowed; opacity: 0.62; transform: none; }
 
     .result {
       min-height: 76px;
@@ -143,38 +127,47 @@
       padding: 18px 22px;
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.72);
+      background: rgba(255,255,255,0.72);
       backdrop-filter: blur(12px);
       display: grid;
       align-content: center;
       gap: 3px;
     }
 
-    .result small {
-      color: var(--muted);
-      font-weight: 700;
-    }
+    .result small { color: var(--muted); font-weight: 700; }
+    .result strong { font-size: clamp(1.4rem, 4vw, 2.4rem); line-height: 1.1; overflow-wrap: anywhere; }
 
-    .result strong {
-      font-size: clamp(1.4rem, 4vw, 2.4rem);
-      line-height: 1.1;
-      overflow-wrap: anywhere;
+    /* Sound toggle */
+    .sound-toggle {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      width: 36px;
+      height: 36px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.86);
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      font-size: 1.1rem;
+      z-index: 5;
+      transition: background 0.15s;
     }
+    .sound-toggle:hover { background: #fff; }
+    .wheel-wrap { position: relative; }
 
     .panel {
       border: 1px solid var(--line);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.86);
+      background: rgba(255,255,255,0.86);
       box-shadow: 0 18px 48px rgba(23, 32, 51, 0.1);
       padding: 18px;
       display: grid;
       gap: 16px;
     }
 
-    .panel h2 {
-      margin: 0;
-      font-size: 1.1rem;
-    }
+    .panel h2 { margin: 0; font-size: 1.1rem; }
 
     .auth-box {
       display: grid;
@@ -196,10 +189,7 @@
       font-weight: 800;
     }
 
-    .auth-button.secondary {
-      background: #fff;
-      color: var(--ink);
-    }
+    .auth-button.secondary { background: #fff; color: var(--ink); }
 
     .auth-status {
       min-height: 20px;
@@ -209,18 +199,9 @@
       overflow-wrap: anywhere;
     }
 
-    .auth-signed-in {
-      display: none;
-      gap: 8px;
-    }
-
-    .auth-box.is-signed-in #anonymousLoginButton {
-      display: none;
-    }
-
-    .auth-box.is-signed-in .auth-signed-in {
-      display: grid;
-    }
+    .auth-signed-in { display: none; gap: 8px; }
+    .auth-box.is-signed-in #anonymousLoginButton { display: none; }
+    .auth-box.is-signed-in .auth-signed-in { display: grid; }
 
     .save-manager {
       display: grid;
@@ -231,14 +212,9 @@
       padding: 12px;
     }
 
-    .save-manager label {
-      color: var(--muted);
-      font-size: 0.86rem;
-      font-weight: 800;
-    }
+    .save-manager label { color: var(--muted); font-size: 0.86rem; font-weight: 800; }
 
-    .save-select,
-    .save-name {
+    .save-select, .save-name {
       width: 100%;
       min-width: 0;
       border: 1px solid var(--line);
@@ -249,17 +225,12 @@
       outline: none;
     }
 
-    .save-select:focus,
-    .save-name:focus {
+    .save-select:focus, .save-name:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.16);
+      box-shadow: 0 0 0 4px rgba(15,139,141,0.16);
     }
 
-    .save-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
+    .save-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
     .save-button {
       min-height: 40px;
@@ -271,17 +242,8 @@
       font-weight: 800;
     }
 
-    .save-button.danger {
-      color: var(--danger);
-      background: #fff7f3;
-    }
-
-    .save-button:disabled,
-    .save-select:disabled,
-    .save-name:disabled {
-      cursor: not-allowed;
-      opacity: 0.56;
-    }
+    .save-button.danger { color: var(--danger); background: #fff7f3; }
+    .save-button:disabled, .save-select:disabled, .save-name:disabled { cursor: not-allowed; opacity: 0.56; }
 
     .bulk-input {
       width: 100%;
@@ -299,7 +261,7 @@
 
     .bulk-input:focus {
       border-color: var(--accent);
-      box-shadow: 0 0 0 4px rgba(15, 139, 141, 0.16);
+      box-shadow: 0 0 0 4px rgba(15,139,141,0.16);
     }
 
     .spin-button {
@@ -308,9 +270,7 @@
       transition: transform 0.15s ease, background 0.15s ease, opacity 0.15s ease;
     }
 
-    .spin-button:hover {
-      transform: translateY(-1px);
-    }
+    .spin-button:hover { transform: translateY(-1px); }
 
     .items {
       display: grid;
@@ -335,7 +295,8 @@
       width: 20px;
       aspect-ratio: 1;
       border-radius: 50%;
-      box-shadow: inset 0 0 0 1px rgba(23, 32, 51, 0.18);
+      box-shadow: inset 0 0 0 1px rgba(23,32,51,0.18);
+      flex-shrink: 0;
     }
 
     .item input {
@@ -369,17 +330,9 @@
       font-size: 1.05rem;
     }
 
-    .spin-button:disabled {
-      opacity: 0.52;
-      cursor: not-allowed;
-      transform: none;
-    }
+    .spin-button:disabled { opacity: 0.52; cursor: not-allowed; transform: none; }
 
-    .sub-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-    }
+    .sub-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
     .ghost {
       min-height: 42px;
@@ -398,25 +351,22 @@
       display: grid;
       place-items: center;
       padding: 24px;
-      background: rgba(9, 16, 30, 0.58);
+      background: rgba(9,16,30,0.58);
       backdrop-filter: blur(8px);
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.22s ease;
     }
 
-    .result-overlay.is-visible {
-      opacity: 1;
-      pointer-events: auto;
-    }
+    .result-overlay.is-visible { opacity: 1; pointer-events: auto; }
 
     .result-pop {
       width: min(760px, 100%);
       min-height: 260px;
-      border: 1px solid rgba(255, 255, 255, 0.58);
+      border: 1px solid rgba(255,255,255,0.58);
       border-radius: 8px;
-      background: rgba(255, 255, 255, 0.94);
-      box-shadow: 0 26px 80px rgba(9, 16, 30, 0.28);
+      background: rgba(255,255,255,0.94);
+      box-shadow: 0 26px 80px rgba(9,16,30,0.28);
       display: grid;
       place-items: center;
       gap: 12px;
@@ -426,14 +376,9 @@
       transition: transform 0.22s ease;
     }
 
-    .result-overlay.is-visible .result-pop {
-      transform: scale(1);
-    }
+    .result-overlay.is-visible .result-pop { transform: scale(1); }
 
-    .result-pop small {
-      color: var(--muted);
-      font-weight: 900;
-    }
+    .result-pop small { color: var(--muted); font-weight: 900; }
 
     .result-pop strong {
       width: 100%;
@@ -442,25 +387,30 @@
       overflow-wrap: anywhere;
     }
 
+    /* confetti canvas */
+    #confettiCanvas {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 11;
+      width: 100%;
+      height: 100%;
+    }
+
     @media (max-width: 860px) {
       .app {
         grid-template-columns: 1fr;
         align-items: start;
         padding: 24px 0;
       }
-
-      .title {
-        text-align: center;
-      }
-
-      .panel {
-        width: min(620px, 100%);
-        margin: 0 auto;
-      }
+      .title { text-align: center; }
+      .panel { width: min(620px, 100%); margin: 0 auto; }
     }
   </style>
 </head>
 <body>
+  <canvas id="confettiCanvas"></canvas>
+
   <main class="app">
     <section class="roulette-area" aria-label="ルーレット">
       <div class="title">
@@ -469,9 +419,10 @@
       </div>
 
       <div class="wheel-wrap">
-        <div class="pointer" aria-hidden="true"></div>
+        <div class="pointer" id="pointer" aria-hidden="true"></div>
         <canvas id="wheel" width="900" height="900" aria-label="候補のルーレット"></canvas>
         <button class="hub" id="hubSpin" type="button" aria-label="ルーレットを回す">SPIN</button>
+        <button class="sound-toggle" id="soundToggle" type="button" title="効果音のオン/オフ">🔊</button>
       </div>
 
       <div class="result" aria-live="polite">
@@ -481,7 +432,7 @@
     </section>
 
     <aside class="panel" aria-label="候補の編集">
-      <h2>候補</h2>
+      <h2>候補（何個でも追加可）</h2>
 
       <section class="auth-box" id="authBox" aria-label="ログイン">
         <button class="auth-button" id="anonymousLoginButton" type="button">この端末で保存を始める</button>
@@ -504,7 +455,7 @@
         </div>
       </section>
 
-      <textarea class="bulk-input" id="bulkItems" maxlength="320" spellcheck="false" placeholder="1行につき1候補"></textarea>
+      <textarea class="bulk-input" id="bulkItems" spellcheck="false" placeholder="1行につき1候補（何行でもOK）"></textarea>
 
       <div class="items" id="items"></div>
 
@@ -525,27 +476,33 @@
   </button>
 
   <script type="module">
-    const canvas = document.getElementById("wheel");
-    const ctx = canvas.getContext("2d");
-    const itemsEl = document.getElementById("items");
-    const resultText = document.getElementById("resultText");
-    const spinButton = document.getElementById("spinButton");
-    const hubSpin = document.getElementById("hubSpin");
-    const resultOverlay = document.getElementById("resultOverlay");
-    const bigResultText = document.getElementById("bigResultText");
-    const bulkItems = document.getElementById("bulkItems");
-    const shuffleButton = document.getElementById("shuffleButton");
-    const resetButton = document.getElementById("resetButton");
-    const authBox = document.getElementById("authBox");
+    /* ── DOM refs ── */
+    const canvas       = document.getElementById("wheel");
+    const ctx          = canvas.getContext("2d");
+    const pointer      = document.getElementById("pointer");
+    const itemsEl      = document.getElementById("items");
+    const resultText   = document.getElementById("resultText");
+    const spinButton   = document.getElementById("spinButton");
+    const hubSpin      = document.getElementById("hubSpin");
+    const resultOverlay  = document.getElementById("resultOverlay");
+    const bigResultText  = document.getElementById("bigResultText");
+    const bulkItems    = document.getElementById("bulkItems");
+    const shuffleButton  = document.getElementById("shuffleButton");
+    const resetButton  = document.getElementById("resetButton");
+    const authBox      = document.getElementById("authBox");
     const anonymousLoginButton = document.getElementById("anonymousLoginButton");
     const logoutButton = document.getElementById("logoutButton");
-    const authStatus = document.getElementById("authStatus");
-    const userLabel = document.getElementById("userLabel");
+    const authStatus   = document.getElementById("authStatus");
+    const userLabel    = document.getElementById("userLabel");
     const rouletteSelect = document.getElementById("rouletteSelect");
     const newRouletteName = document.getElementById("newRouletteName");
     const createRouletteButton = document.getElementById("createRouletteButton");
     const deleteRouletteButton = document.getElementById("deleteRouletteButton");
+    const soundToggle  = document.getElementById("soundToggle");
+    const confettiCanvas = document.getElementById("confettiCanvas");
+    const confettiCtx  = confettiCanvas.getContext("2d");
 
+    /* ── Firebase config ── */
     const firebaseConfig = {
       apiKey: "AIzaSyDekw8rSjt_0YHeBMCvBLWEH0vNyBtDTqk",
       authDomain: "roulette-edb61.firebaseapp.com",
@@ -557,27 +514,203 @@
       measurementId: "G-GKVTEGVSN2"
     };
 
+    /* ── Data ── */
     const defaultItems = ["ランチ", "散歩", "読書", "掃除", "映画", "勉強"];
-    const colors = ["#0f8b8d", "#f18f01", "#7c3aed", "#e11d48", "#2563eb", "#16a34a", "#ea580c", "#0891b2"];
+    // 16 colors that cycle, supporting unlimited items
+    const colors = [
+      "#0f8b8d","#f18f01","#7c3aed","#e11d48",
+      "#2563eb","#16a34a","#ea580c","#0891b2",
+      "#db2777","#65a30d","#9333ea","#0284c7",
+      "#d97706","#059669","#dc2626","#7c3aed"
+    ];
 
-    let items = [...defaultItems];
+    let items    = [...defaultItems];
     let rotation = 0;
     let spinning = false;
     let revealTimer = 0;
-    let firebaseApi = null;
-    let auth = null;
-    let db = null;
-    let currentUser = null;
-    let roulettes = [];
-    let activeRouletteId = null;
-    let unsubscribeRoulettes = null;
-    let unsubscribeItems = null;
-    let saveTimer = 0;
-    let applyingRemoteItems = false;
-    let creatingInitialRoulette = false;
 
+    /* ── Sound ── */
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function getAudioCtx() {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      return audioCtx;
+    }
+
+    function playTick(intensity = 1) {
+      if (!soundEnabled) return;
+      try {
+        const ac = getAudioCtx();
+        const osc = ac.createOscillator();
+        const gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.type = "triangle";
+        osc.frequency.setValueAtTime(600 + intensity * 200, ac.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(300, ac.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.18 * Math.min(intensity, 1), ac.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + 0.06);
+        osc.start(ac.currentTime);
+        osc.stop(ac.currentTime + 0.06);
+      } catch(e) {}
+    }
+
+    function playFanfare() {
+      if (!soundEnabled) return;
+      try {
+        const ac = getAudioCtx();
+        // Jingle: C4 E4 G4 C5 with slight overlap
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        const times  = [0, 0.13, 0.26, 0.42];
+        notes.forEach((freq, i) => {
+          const osc  = ac.createOscillator();
+          const gain = ac.createGain();
+          osc.connect(gain);
+          gain.connect(ac.destination);
+          osc.type = "sine";
+          const t = ac.currentTime + times[i];
+          osc.frequency.setValueAtTime(freq, t);
+          gain.gain.setValueAtTime(0, t);
+          gain.gain.linearRampToValueAtTime(0.22, t + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.38);
+          osc.start(t);
+          osc.stop(t + 0.4);
+        });
+        // Extra sparkle on last note
+        const sparkOsc  = ac.createOscillator();
+        const sparkGain = ac.createGain();
+        sparkOsc.connect(sparkGain);
+        sparkGain.connect(ac.destination);
+        sparkOsc.type = "sine";
+        const st = ac.currentTime + 0.42;
+        sparkOsc.frequency.setValueAtTime(1046.5, st); // C6
+        sparkGain.gain.setValueAtTime(0, st);
+        sparkGain.gain.linearRampToValueAtTime(0.12, st + 0.02);
+        sparkGain.gain.exponentialRampToValueAtTime(0.0001, st + 0.55);
+        sparkOsc.start(st);
+        sparkOsc.stop(st + 0.6);
+      } catch(e) {}
+    }
+
+    soundToggle.addEventListener("click", () => {
+      soundEnabled = !soundEnabled;
+      soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
+    });
+
+    /* ── Tick sound during spin ── */
+    let tickRaf = null;
+    let lastTickAngle = 0;
+    let spinStartTime = 0;
+    const SPIN_DURATION = 4600;
+
+    function runTickLoop(startRotation, endRotation) {
+      const start = performance.now();
+      lastTickAngle = startRotation % 360;
+
+      function loop(now) {
+        const elapsed = now - start;
+        const progress = Math.min(elapsed / SPIN_DURATION, 1);
+        // Match CSS cubic-bezier(0.12, 0.76, 0.12, 1)
+        const eased = cubicBezier(0.12, 0.76, 0.12, 1, progress);
+        const currentRot = startRotation + (endRotation - startRotation) * eased;
+        const currentAngle = currentRot % 360;
+
+        const sliceDeg = items.length > 0 ? 360 / items.length : 360;
+        const prevIdx = Math.floor(((360 - lastTickAngle) / sliceDeg));
+        const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+
+        if (currIdx !== prevIdx) {
+          // Speed factor for pitch: fast = high intensity
+          const speed = (endRotation - startRotation) * (1 - eased) / SPIN_DURATION;
+          playTick(Math.min(speed / 0.5 + 0.3, 1.2));
+          // Animate pointer
+          pointer.classList.add("tick");
+          setTimeout(() => pointer.classList.remove("tick"), 50);
+        }
+
+        lastTickAngle = currentAngle;
+
+        if (progress < 1) {
+          tickRaf = requestAnimationFrame(loop);
+        }
+      }
+
+      tickRaf = requestAnimationFrame(loop);
+    }
+
+    // Approximate cubic-bezier easing
+    function cubicBezier(x1, y1, x2, y2, t) {
+      // Newton's method approximation
+      function sampleCurveX(t) {
+        return ((1 - 3*x2 + 3*x1)*t + (3*x2 - 6*x1))*t*t + 3*x1*t*t;
+        // simplified:
+      }
+      // Simple approximation by binary search
+      let lo = 0, hi = 1, mid = t;
+      for (let i = 0; i < 12; i++) {
+        const xMid = bezierCoord(x1, x2, mid);
+        if (Math.abs(xMid - t) < 0.0001) break;
+        if (xMid < t) lo = mid; else hi = mid;
+        mid = (lo + hi) / 2;
+      }
+      return bezierCoord(y1, y2, mid);
+    }
+
+    function bezierCoord(p1, p2, t) {
+      return 3*(1-t)*(1-t)*t*p1 + 3*(1-t)*t*t*p2 + t*t*t;
+    }
+
+    /* ── Confetti ── */
+    let confettiParticles = [];
+    let confettiRaf = null;
+
+    function launchConfetti() {
+      confettiCanvas.width  = window.innerWidth;
+      confettiCanvas.height = window.innerHeight;
+      confettiParticles = Array.from({ length: 120 }, () => ({
+        x: Math.random() * confettiCanvas.width,
+        y: -10 - Math.random() * 100,
+        vx: (Math.random() - 0.5) * 3,
+        vy: 2 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        w: 8 + Math.random() * 8,
+        h: 4 + Math.random() * 4,
+        rot: Math.random() * 360,
+        rotV: (Math.random() - 0.5) * 8,
+        life: 1
+      }));
+      if (confettiRaf) cancelAnimationFrame(confettiRaf);
+      animateConfetti();
+    }
+
+    function animateConfetti() {
+      confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+      let alive = false;
+      for (const p of confettiParticles) {
+        p.x  += p.vx;
+        p.y  += p.vy;
+        p.vy += 0.06;
+        p.rot += p.rotV;
+        p.life -= 0.006;
+        if (p.life > 0 && p.y < confettiCanvas.height + 20) {
+          alive = true;
+          confettiCtx.save();
+          confettiCtx.globalAlpha = Math.max(0, p.life);
+          confettiCtx.translate(p.x, p.y);
+          confettiCtx.rotate(p.rot * Math.PI / 180);
+          confettiCtx.fillStyle = p.color;
+          confettiCtx.fillRect(-p.w/2, -p.h/2, p.w, p.h);
+          confettiCtx.restore();
+        }
+      }
+      if (alive) confettiRaf = requestAnimationFrame(animateConfetti);
+      else confettiCtx.clearRect(0, 0, confettiCanvas.width, confettiCanvas.height);
+    }
+
+    /* ── Wheel drawing ── */
     function drawWheel() {
-      const size = canvas.width;
+      const size   = canvas.width;
       const center = size / 2;
       const radius = center - 34;
       ctx.clearRect(0, 0, size, size);
@@ -599,14 +732,13 @@
 
       items.forEach((label, index) => {
         const start = index * slice - Math.PI / 2;
-        const end = start + slice;
+        const end   = start + slice;
         ctx.beginPath();
         ctx.moveTo(center, center);
         ctx.arc(center, center, radius, start, end);
         ctx.closePath();
         ctx.fillStyle = colors[index % colors.length];
         ctx.fill();
-
         ctx.strokeStyle = "rgba(255,255,255,0.8)";
         ctx.lineWidth = 6;
         ctx.stroke();
@@ -617,7 +749,11 @@
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#fff";
-        ctx.font = "800 34px system-ui, sans-serif";
+
+        // Scale font size down for many items
+        const fontSize = Math.max(18, Math.min(34, 34 - Math.max(0, items.length - 8) * 1.6));
+        ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
+
         fitText(label, radius - 42, 0, radius * 0.58);
         ctx.restore();
       });
@@ -649,7 +785,7 @@
 
         const input = document.createElement("input");
         input.value = item;
-        input.maxLength = 24;
+        input.maxLength = 40;
         input.ariaLabel = `${index + 1}番目の候補`;
         input.addEventListener("input", () => {
           items[index] = input.value.trim() || `候補${index + 1}`;
@@ -677,51 +813,56 @@
 
       const disabled = items.length < 2 || spinning;
       spinButton.disabled = disabled;
-      hubSpin.disabled = disabled;
+      hubSpin.disabled    = disabled;
     }
 
-    function render() {
-      renderItems();
-      drawWheel();
-    }
+    function render() { renderItems(); drawWheel(); }
 
     function getItemsFromText(value) {
       return value
         .split(/\r?\n/)
-        .map((item) => item.trim())
+        .map(i => i.trim())
         .filter(Boolean)
-        .map((item) => item.slice(0, 24));
+        .map(i => i.slice(0, 40));
     }
 
-    function syncBulkInput() {
-      bulkItems.value = items.join("\n");
+    function syncBulkInput() { bulkItems.value = items.join("\n"); }
+
+    /* ── Spin ── */
+    function spin() {
+      if (spinning || items.length < 2) return;
+      spinning = true;
+      spinButton.disabled = true;
+      hubSpin.disabled    = true;
+      hideResultOverlay();
+      resultText.textContent = "回転中...";
+
+      if (tickRaf) cancelAnimationFrame(tickRaf);
+
+      const selected       = Math.floor(Math.random() * items.length);
+      const sliceDeg       = 360 / items.length;
+      const selectedCenter = selected * sliceDeg + sliceDeg / 2;
+      const targetAtPointer = 360 - selectedCenter;
+      const extraTurns     = 5 + Math.floor(Math.random() * 4);
+      const prevRotation   = rotation;
+      rotation += extraTurns * 360 + targetAtPointer - (rotation % 360);
+
+      canvas.style.transition = `transform ${SPIN_DURATION}ms cubic-bezier(0.12, 0.76, 0.12, 1)`;
+      canvas.style.transform  = `rotate(${rotation}deg)`;
+
+      runTickLoop(prevRotation, rotation);
+
+      window.setTimeout(() => {
+        spinning = false;
+        resultText.textContent = items[selected];
+        renderItems();
+        playFanfare();
+        launchConfetti();
+        revealTimer = window.setTimeout(() => showResultOverlay(items[selected]), 600);
+      }, SPIN_DURATION + 100);
     }
 
-    function renderRouletteControls() {
-      const signedIn = Boolean(currentUser);
-      rouletteSelect.disabled = !signedIn || roulettes.length === 0;
-      newRouletteName.disabled = !signedIn;
-      createRouletteButton.disabled = !signedIn;
-      deleteRouletteButton.disabled = !signedIn || roulettes.length <= 1 || !activeRouletteId;
-
-      rouletteSelect.innerHTML = "";
-      if (roulettes.length === 0) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = signedIn ? "読み込み中" : "未保存";
-        rouletteSelect.append(option);
-        return;
-      }
-
-      roulettes.forEach((roulette) => {
-        const option = document.createElement("option");
-        option.value = roulette.id;
-        option.textContent = roulette.name || "名称未設定";
-        rouletteSelect.append(option);
-      });
-      rouletteSelect.value = activeRouletteId || roulettes[0].id;
-    }
-
+    /* ── Overlay ── */
     function hideResultOverlay() {
       window.clearTimeout(revealTimer);
       resultOverlay.classList.remove("is-visible");
@@ -734,18 +875,48 @@
       document.body.classList.add("result-open");
     }
 
-    function hasFirebaseConfig() {
-      return Boolean(
-        firebaseConfig.apiKey &&
-        firebaseConfig.authDomain &&
-        firebaseConfig.projectId &&
-        firebaseConfig.appId
-      );
+    /* ── Firebase ── */
+    let firebaseApi = null;
+    let auth = null;
+    let db   = null;
+    let currentUser = null;
+    let roulettes   = [];
+    let activeRouletteId    = null;
+    let unsubscribeRoulettes = null;
+    let unsubscribeItems     = null;
+    let saveTimer = 0;
+    let applyingRemoteItems  = false;
+    let creatingInitialRoulette = false;
+
+    function renderRouletteControls() {
+      const signedIn = Boolean(currentUser);
+      rouletteSelect.disabled     = !signedIn || roulettes.length === 0;
+      newRouletteName.disabled    = !signedIn;
+      createRouletteButton.disabled = !signedIn;
+      deleteRouletteButton.disabled = !signedIn || roulettes.length <= 1 || !activeRouletteId;
+      rouletteSelect.innerHTML = "";
+      if (roulettes.length === 0) {
+        const option = document.createElement("option");
+        option.value = "";
+        option.textContent = signedIn ? "読み込み中" : "未保存";
+        rouletteSelect.append(option);
+        return;
+      }
+      roulettes.forEach((r) => {
+        const option = document.createElement("option");
+        option.value = r.id;
+        option.textContent = r.name || "名称未設定";
+        rouletteSelect.append(option);
+      });
+      rouletteSelect.value = activeRouletteId || roulettes[0].id;
     }
 
-    function setAuthStatus(message) {
-      authStatus.textContent = message;
+    function hasFirebaseConfig() {
+      return Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain &&
+        firebaseConfig.projectId && firebaseConfig.appId);
     }
+
+    function setAuthStatus(message) { authStatus.textContent = message; }
 
     function getUserRoulettesRef(user) {
       return firebaseApi.ref(db, `users/${user.uid}/roulette`);
@@ -757,7 +928,7 @@
 
     function queueSaveItems() {
       if (!currentUser || !firebaseApi || !activeRouletteId || applyingRemoteItems) return;
-      const user = currentUser;
+      const user       = currentUser;
       const rouletteId = activeRouletteId;
       const itemsToSave = [...items];
       window.clearTimeout(saveTimer);
@@ -778,15 +949,9 @@
       if (unsubscribeItems) unsubscribeItems();
       unsubscribeItems = firebaseApi.onValue(getUserItemsRef(user, rouletteId), (snapshot) => {
         const savedItems = snapshot.val()?.items;
-        if (!Array.isArray(savedItems)) {
-          queueSaveItems();
-          return;
-        }
-
+        if (!Array.isArray(savedItems)) { queueSaveItems(); return; }
         applyingRemoteItems = true;
-        items = savedItems
-          .filter((item) => typeof item === "string" && item.trim())
-          .map((item) => item.trim().slice(0, 24));
+        items = savedItems.filter(i => typeof i === "string" && i.trim()).map(i => i.trim().slice(0, 40));
         syncBulkInput();
         resultText.textContent = "まだ回していません";
         hideResultOverlay();
@@ -803,12 +968,7 @@
       const cleanName = name.trim().slice(0, 24) || `ルーレット ${roulettes.length + 1}`;
       try {
         const docRef = firebaseApi.push(getUserRoulettesRef(currentUser));
-        await firebaseApi.set(docRef, {
-          name: cleanName,
-          items: [...items],
-          createdAt: Date.now(),
-          updatedAt: Date.now()
-        });
+        await firebaseApi.set(docRef, { name: cleanName, items: [...items], createdAt: Date.now(), updatedAt: Date.now() });
         activeRouletteId = docRef.key;
         newRouletteName.value = "";
         setAuthStatus(`${cleanName}を作成しました。`);
@@ -821,8 +981,8 @@
 
     async function deleteActiveRoulette() {
       if (!currentUser || !activeRouletteId || roulettes.length <= 1) return;
-      const deletingId = activeRouletteId;
-      const nextRoulette = roulettes.find((roulette) => roulette.id !== deletingId);
+      const deletingId   = activeRouletteId;
+      const nextRoulette = roulettes.find(r => r.id !== deletingId);
       try {
         await firebaseApi.remove(getUserItemsRef(currentUser, deletingId));
         activeRouletteId = nextRoulette?.id || null;
@@ -839,31 +999,21 @@
       unsubscribeRoulettes = firebaseApi.onValue(getUserRoulettesRef(user), (snapshot) => {
         const savedRoulettes = snapshot.val() || {};
         roulettes = Object.entries(savedRoulettes)
-          .map(([id, value]) => ({
-            id,
-            name: value?.name,
-            items: value?.items,
-            updatedAt: value?.updatedAt || 0
-          }))
+          .map(([id, value]) => ({ id, name: value?.name, items: value?.items, updatedAt: value?.updatedAt || 0 }))
           .sort((a, b) => b.updatedAt - a.updatedAt);
-
         if (roulettes.length === 0) {
           renderRouletteControls();
           if (!creatingInitialRoulette) {
             creatingInitialRoulette = true;
-            createRoulette("デフォルト").finally(() => {
-              creatingInitialRoulette = false;
-            });
+            createRoulette("デフォルト").finally(() => { creatingInitialRoulette = false; });
           }
           return;
         }
-
-        const activeExists = roulettes.some((roulette) => roulette.id === activeRouletteId);
+        const activeExists = roulettes.some(r => r.id === activeRouletteId);
         if (!activeRouletteId || !activeExists) {
           activeRouletteId = roulettes[0].id;
           startUserItemsSync(user, activeRouletteId);
         }
-
         renderRouletteControls();
       }, (error) => {
         setAuthStatus(`保存データの読み込みに失敗しました: ${error.message}`);
@@ -872,32 +1022,24 @@
 
     async function setupFirebase() {
       if (!hasFirebaseConfig()) return;
-
       try {
         const [{ initializeApp }, authModule, databaseModule] = await Promise.all([
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"),
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"),
           import("https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js")
         ]);
-
-        firebaseApi = {
-          ...authModule,
-          ...databaseModule
-        };
-
+        firebaseApi = { ...authModule, ...databaseModule };
         const app = initializeApp(firebaseConfig);
         auth = authModule.getAuth(app);
-        db = databaseModule.getDatabase(app);
-
+        db   = databaseModule.getDatabase(app);
         authModule.onAuthStateChanged(auth, (user) => {
           currentUser = user;
           authBox.classList.toggle("is-signed-in", Boolean(user));
-
           if (!user) {
             if (unsubscribeRoulettes) unsubscribeRoulettes();
             if (unsubscribeItems) unsubscribeItems();
             unsubscribeRoulettes = null;
-            unsubscribeItems = null;
+            unsubscribeItems     = null;
             roulettes = [];
             activeRouletteId = null;
             userLabel.textContent = "";
@@ -905,12 +1047,10 @@
             setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
             return;
           }
-
           userLabel.textContent = "この端末で保存中";
           setAuthStatus("保存データを読み込んでいます。");
           startRoulettesSync(user);
         });
-
         setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
       } catch (error) {
         setAuthStatus(`Firebaseの読み込みに失敗しました: ${error.message}`);
@@ -918,11 +1058,7 @@
     }
 
     async function signInAnonymouslyForDevice() {
-      if (!auth) {
-        setAuthStatus("先にFirebase設定を入力してください。");
-        return;
-      }
-
+      if (!auth) { setAuthStatus("先にFirebase設定を入力してください。"); return; }
       try {
         await firebaseApi.signInAnonymously(auth);
       } catch (error) {
@@ -930,34 +1066,7 @@
       }
     }
 
-    function spin() {
-      if (spinning || items.length < 2) return;
-
-      spinning = true;
-      spinButton.disabled = true;
-      hubSpin.disabled = true;
-      hideResultOverlay();
-      resultText.textContent = "回転中...";
-
-      const selected = Math.floor(Math.random() * items.length);
-      const sliceDeg = 360 / items.length;
-      const selectedCenter = selected * sliceDeg + sliceDeg / 2;
-      const targetAtPointer = 360 - selectedCenter;
-      const extraTurns = 5 + Math.floor(Math.random() * 4);
-      rotation += extraTurns * 360 + targetAtPointer - (rotation % 360);
-
-      canvas.style.transform = `rotate(${rotation}deg)`;
-
-      window.setTimeout(() => {
-        spinning = false;
-        resultText.textContent = items[selected];
-        renderItems();
-        revealTimer = window.setTimeout(() => {
-          showResultOverlay(items[selected]);
-        }, 1000);
-      }, 4700);
-    }
-
+    /* ── Event listeners ── */
     bulkItems.addEventListener("input", () => {
       items = getItemsFromText(bulkItems.value);
       resultText.textContent = "まだ回していません";
@@ -982,10 +1091,7 @@
     });
 
     shuffleButton.addEventListener("click", () => {
-      items = items
-        .map((value) => ({ value, sort: Math.random() }))
-        .sort((a, b) => a.sort - b.sort)
-        .map(({ value }) => value);
+      items = items.map(v => ({ v, s: Math.random() })).sort((a, b) => a.s - b.s).map(({ v }) => v);
       syncBulkInput();
       render();
       queueSaveItems();
@@ -995,13 +1101,15 @@
       items = [...defaultItems];
       resultText.textContent = "まだ回していません";
       rotation = 0;
-      canvas.style.transform = "rotate(0deg)";
+      canvas.style.transition = "none";
+      canvas.style.transform  = "rotate(0deg)";
       hideResultOverlay();
       syncBulkInput();
       render();
       queueSaveItems();
     });
 
+    /* ── Init ── */
     syncBulkInput();
     render();
     renderRouletteControls();
