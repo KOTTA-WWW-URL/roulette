@@ -826,8 +826,6 @@
         .map(i => i.slice(0, 40));
     }
 
-    function syncBulkInput() { bulkItems.value = items.join("\n"); }
-
     /* ── Spin ── */
     function spin() {
       if (spinning || items.length < 2) return;
@@ -1066,12 +1064,28 @@
       }
     }
 
+    /* ── Sync helpers that respect textarea focus ── */
+    let bulkFocused = false;
+    bulkItems.addEventListener("focus", () => { bulkFocused = true; });
+    bulkItems.addEventListener("blur",  () => {
+      bulkFocused = false;
+      // Re-sync textarea now that user has finished typing
+      syncBulkInput();
+    });
+
+    function syncBulkInput() {
+      // Don't overwrite while the user is actively typing in the textarea
+      if (!bulkFocused) bulkItems.value = items.join("\n");
+    }
+
     /* ── Event listeners ── */
     bulkItems.addEventListener("input", () => {
       items = getItemsFromText(bulkItems.value);
       resultText.textContent = "まだ回していません";
       hideResultOverlay();
-      render();
+      // Only update wheel + item list, NOT the textarea itself
+      renderItems();
+      drawWheel();
       queueSaveItems();
     });
 
