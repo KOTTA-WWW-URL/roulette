@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Roulette</title>
+  <title>Roulette/title>
   <style>
     :root {
       color-scheme: light;
@@ -580,68 +580,8 @@
       soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
     });
 
-    /* ── Tick sound during spin ── */
-    let tickRaf = null;
-    let lastTickAngle = 0;
-    let spinStartTime = 0;
-    const SPIN_DURATION = 4600;
-
-    function runTickLoop(startRotation, endRotation) {
-      const start = performance.now();
-      lastTickAngle = startRotation % 360;
-
-      function loop(now) {
-        const elapsed = now - start;
-        const progress = Math.min(elapsed / SPIN_DURATION, 1);
-        // Match CSS cubic-bezier(0.12, 0.76, 0.12, 1)
-        const eased = cubicBezier(0.12, 0.76, 0.12, 1, progress);
-        const currentRot = startRotation + (endRotation - startRotation) * eased;
-        const currentAngle = currentRot % 360;
-
-        const sliceDeg = items.length > 0 ? 360 / items.length : 360;
-        const prevIdx = Math.floor(((360 - lastTickAngle) / sliceDeg));
-        const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
-
-        if (currIdx !== prevIdx) {
-          // Speed factor for pitch: fast = high intensity
-          const speed = (endRotation - startRotation) * (1 - eased) / SPIN_DURATION;
-          playTick(Math.min(speed / 0.5 + 0.3, 1.2));
-          // Animate pointer
-          pointer.classList.add("tick");
-          setTimeout(() => pointer.classList.remove("tick"), 50);
-        }
-
-        lastTickAngle = currentAngle;
-
-        if (progress < 1) {
-          tickRaf = requestAnimationFrame(loop);
-        }
-      }
-
-      tickRaf = requestAnimationFrame(loop);
-    }
-
-    // Approximate cubic-bezier easing
-    function cubicBezier(x1, y1, x2, y2, t) {
-      // Newton's method approximation
-      function sampleCurveX(t) {
-        return ((1 - 3*x2 + 3*x1)*t + (3*x2 - 6*x1))*t*t + 3*x1*t*t;
-        // simplified:
-      }
-      // Simple approximation by binary search
-      let lo = 0, hi = 1, mid = t;
-      for (let i = 0; i < 12; i++) {
-        const xMid = bezierCoord(x1, x2, mid);
-        if (Math.abs(xMid - t) < 0.0001) break;
-        if (xMid < t) lo = mid; else hi = mid;
-        mid = (lo + hi) / 2;
-      }
-      return bezierCoord(y1, y2, mid);
-    }
-
-    function bezierCoord(p1, p2, t) {
-      return 3*(1-t)*(1-t)*t*p1 + 3*(1-t)*t*t*p2 + t*t*t;
-    }
+    /* ── Spin RAF handle ── */
+    let spinRaf = null;
 
     /* ── Confetti ── */
     let confettiParticles = [];
@@ -808,7 +748,7 @@
         .map(i => i.slice(0, 40));
     }
 
-    /* ── Spin ── */
+    /* ── Spin (RAF two-phase: constant speed → decelerate) ── */
     function spin() {
       if (spinning || items.length < 2) return;
       spinning = true;
@@ -816,30 +756,80 @@
       hubSpin.disabled    = true;
       hideResultOverlay();
       resultText.textContent = "回転中...";
+      if (spinRaf) cancelAnimationFrame(spinRaf);
 
-      if (tickRaf) cancelAnimationFrame(tickRaf);
+      // Randomise phase durations
+      const constDuration = 3000 + Math.random() * 2000; // 3–5 s constant
+      const decelDuration = 1000 + Math.random() * 4000; // 1–5 s decelerate
+      const totalDuration = constDuration + decelDuration;
 
+      const speed   = 1.5; // deg/ms during constant phase (~4 rps)
+      const sliceDeg = 360 / items.length;
+
+      // Degrees covered during constant phase
+      const constDeg   = speed * constDuration;
+      const afterConst = rotation + constDeg;
+
+      // Pick winning segment and compute exact stop angle
       const selected       = Math.floor(Math.random() * items.length);
-      const sliceDeg       = 360 / items.length;
       const selectedCenter = selected * sliceDeg + sliceDeg / 2;
       const targetAtPointer = 360 - selectedCenter;
-      const extraTurns     = 5 + Math.floor(Math.random() * 4);
-      const prevRotation   = rotation;
-      rotation += extraTurns * 360 + targetAtPointer - (rotation % 360);
 
-      canvas.style.transition = `transform ${SPIN_DURATION}ms cubic-bezier(0.12, 0.76, 0.12, 1)`;
-      canvas.style.transform  = `rotate(${rotation}deg)`;
+      const currentMod = afterConst % 360;
+      let extraDeg = (targetAtPointer - currentMod + 360) % 360;
+      if (extraDeg < 90) extraDeg += 360; // at least a quarter-turn of decel arc
 
-      runTickLoop(prevRotation, rotation);
+      const decelStartRot = afterConst;
+      const decelEndRot   = afterConst + extraDeg;
 
-      window.setTimeout(() => {
-        spinning = false;
-        resultText.textContent = items[selected];
-        renderItems();
-        playFanfare();
-        launchConfetti();
-        revealTimer = window.setTimeout(() => showResultOverlay(items[selected]), 600);
-      }, SPIN_DURATION + 100);
+      const startTime = performance.now();
+      let lastAngle   = rotation % 360;
+
+      function loop(now) {
+        const elapsed = now - startTime;
+        let currentRot;
+
+        if (elapsed < constDuration) {
+          currentRot = rotation + speed * elapsed;
+        } else if (elapsed < totalDuration) {
+          const t     = (elapsed - constDuration) / decelDuration;
+          const eased = 1 - (1 - t) * (1 - t); // quadratic ease-out
+          currentRot  = decelStartRot + (decelEndRot - decelStartRot) * eased;
+        } else {
+          currentRot = decelEndRot;
+        }
+
+        canvas.style.transition = "none";
+        canvas.style.transform  = `rotate(${currentRot}deg)`;
+
+        // Tick on segment boundary crossing
+        const currentAngle = ((currentRot % 360) + 360) % 360;
+        const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
+        const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+        if (currIdx !== prevIdx) {
+          const intensity = elapsed < constDuration
+            ? 1.0
+            : Math.max(0.25, 1 - (elapsed - constDuration) / decelDuration);
+          playTick(intensity);
+          pointer.classList.add("tick");
+          setTimeout(() => pointer.classList.remove("tick"), 50);
+        }
+        lastAngle = currentAngle;
+
+        if (elapsed < totalDuration) {
+          spinRaf = requestAnimationFrame(loop);
+        } else {
+          rotation = decelEndRot;
+          spinning = false;
+          resultText.textContent = items[selected];
+          renderItems();
+          playFanfare();
+          launchConfetti();
+          revealTimer = window.setTimeout(() => showResultOverlay(items[selected]), 600);
+        }
+      }
+
+      spinRaf = requestAnimationFrame(loop);
     }
 
     /* ── Overlay ── */
