@@ -79,7 +79,6 @@
       width: 100%;
       height: 100%;
       filter: drop-shadow(var(--shadow));
-      transition: transform 4.6s cubic-bezier(0.12, 0.76, 0.12, 1);
     }
 
     .pointer {
@@ -155,7 +154,6 @@
       transition: background 0.15s;
     }
     .sound-toggle:hover { background: #fff; }
-    .wheel-wrap { position: relative; }
 
     .panel {
       border: 1px solid var(--line);
@@ -168,40 +166,6 @@
     }
 
     .panel h2 { margin: 0; font-size: 1.1rem; }
-
-    .auth-box {
-      display: grid;
-      gap: 10px;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      padding: 12px;
-    }
-
-    .auth-button {
-      min-height: 40px;
-      width: 100%;
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: var(--ink);
-      color: #fff;
-      cursor: pointer;
-      font-weight: 800;
-    }
-
-    .auth-button.secondary { background: #fff; color: var(--ink); }
-
-    .auth-status {
-      min-height: 20px;
-      color: var(--muted);
-      font-size: 0.88rem;
-      line-height: 1.45;
-      overflow-wrap: anywhere;
-    }
-
-    .auth-signed-in { display: none; gap: 8px; }
-    .auth-box.is-signed-in #anonymousLoginButton { display: none; }
-    .auth-box.is-signed-in .auth-signed-in { display: grid; }
 
     .save-manager {
       display: grid;
@@ -244,6 +208,12 @@
 
     .save-button.danger { color: var(--danger); background: #fff7f3; }
     .save-button:disabled, .save-select:disabled, .save-name:disabled { cursor: not-allowed; opacity: 0.56; }
+
+    .save-status {
+      color: var(--muted);
+      font-size: 0.82rem;
+      min-height: 18px;
+    }
 
     .bulk-input {
       width: 100%;
@@ -387,7 +357,6 @@
       overflow-wrap: anywhere;
     }
 
-    /* confetti canvas */
     #confettiCanvas {
       position: fixed;
       inset: 0;
@@ -434,25 +403,15 @@
     <aside class="panel" aria-label="候補の編集">
       <h2>候補（何個でも追加可）</h2>
 
-      <section class="auth-box" id="authBox" aria-label="ログイン">
-        <button class="auth-button" id="anonymousLoginButton" type="button">この端末で保存を始める</button>
-        <div class="auth-signed-in">
-          <div class="auth-status" id="userLabel"></div>
-          <button class="auth-button secondary" id="logoutButton" type="button">ログアウト</button>
-        </div>
-        <div class="auth-status" id="authStatus">この端末のブラウザに候補を保存できます。</div>
-      </section>
-
       <section class="save-manager" aria-label="保存データ">
         <label for="rouletteSelect">保存データ</label>
-        <select class="save-select" id="rouletteSelect" disabled>
-          <option>未保存</option>
-        </select>
-        <input class="save-name" id="newRouletteName" type="text" maxlength="24" placeholder="新しい保存名" disabled>
+        <select class="save-select" id="rouletteSelect"></select>
+        <input class="save-name" id="newRouletteName" type="text" maxlength="24" placeholder="新しい保存名">
         <div class="save-actions">
-          <button class="save-button" id="createRouletteButton" type="button" disabled>新規保存</button>
-          <button class="save-button danger" id="deleteRouletteButton" type="button" disabled>削除</button>
+          <button class="save-button" id="createRouletteButton" type="button">新規保存</button>
+          <button class="save-button danger" id="deleteRouletteButton" type="button">削除</button>
         </div>
+        <div class="save-status" id="saveStatus">端末に自動保存されます。</div>
       </section>
 
       <textarea class="bulk-input" id="bulkItems" spellcheck="false" placeholder="1行につき1候補（何行でもOK）"></textarea>
@@ -475,48 +434,32 @@
     </span>
   </button>
 
-  <script type="module">
+  <script>
     /* ── DOM refs ── */
-    const canvas       = document.getElementById("wheel");
-    const ctx          = canvas.getContext("2d");
-    const pointer      = document.getElementById("pointer");
-    const itemsEl      = document.getElementById("items");
-    const resultText   = document.getElementById("resultText");
-    const spinButton   = document.getElementById("spinButton");
-    const hubSpin      = document.getElementById("hubSpin");
+    const canvas         = document.getElementById("wheel");
+    const ctx            = canvas.getContext("2d");
+    const pointer        = document.getElementById("pointer");
+    const itemsEl        = document.getElementById("items");
+    const resultText     = document.getElementById("resultText");
+    const spinButton     = document.getElementById("spinButton");
+    const hubSpin        = document.getElementById("hubSpin");
     const resultOverlay  = document.getElementById("resultOverlay");
     const bigResultText  = document.getElementById("bigResultText");
-    const bulkItems    = document.getElementById("bulkItems");
+    const bulkItems      = document.getElementById("bulkItems");
     const shuffleButton  = document.getElementById("shuffleButton");
-    const resetButton  = document.getElementById("resetButton");
-    const authBox      = document.getElementById("authBox");
-    const anonymousLoginButton = document.getElementById("anonymousLoginButton");
-    const logoutButton = document.getElementById("logoutButton");
-    const authStatus   = document.getElementById("authStatus");
-    const userLabel    = document.getElementById("userLabel");
+    const resetButton    = document.getElementById("resetButton");
     const rouletteSelect = document.getElementById("rouletteSelect");
     const newRouletteName = document.getElementById("newRouletteName");
     const createRouletteButton = document.getElementById("createRouletteButton");
     const deleteRouletteButton = document.getElementById("deleteRouletteButton");
-    const soundToggle  = document.getElementById("soundToggle");
+    const saveStatus     = document.getElementById("saveStatus");
+    const soundToggle    = document.getElementById("soundToggle");
     const confettiCanvas = document.getElementById("confettiCanvas");
-    const confettiCtx  = confettiCanvas.getContext("2d");
+    const confettiCtx    = confettiCanvas.getContext("2d");
 
-    /* ── Firebase config ── */
-    const firebaseConfig = {
-      apiKey: "AIzaSyDekw8rSjt_0YHeBMCvBLWEH0vNyBtDTqk",
-      authDomain: "roulette-edb61.firebaseapp.com",
-      databaseURL: "https://roulette-edb61-default-rtdb.firebaseio.com",
-      projectId: "roulette-edb61",
-      storageBucket: "roulette-edb61.firebasestorage.app",
-      messagingSenderId: "725020414783",
-      appId: "1:725020414783:web:3508ac42cb5ead929bf98a",
-      measurementId: "G-GKVTEGVSN2"
-    };
-
-    /* ── Data ── */
+    /* ── Constants ── */
+    const LS_KEY = "roulette_v1";
     const defaultItems = ["ランチ", "散歩", "読書", "掃除", "映画", "勉強"];
-    // 16 colors that cycle, supporting unlimited items
     const colors = [
       "#0f8b8d","#f18f01","#7c3aed","#e11d48",
       "#2563eb","#16a34a","#ea580c","#0891b2",
@@ -524,10 +467,116 @@
       "#d97706","#059669","#dc2626","#7c3aed"
     ];
 
+    /* ── State ── */
     let items    = [...defaultItems];
     let rotation = 0;
     let spinning = false;
+    let spinRaf  = null;
     let revealTimer = 0;
+
+    // roulettes: Array<{ id: string, name: string, items: string[] }>
+    let roulettes = [];
+    let activeId  = null;
+
+    /* ────────────────────────────────────────────
+       localStorage persistence
+    ──────────────────────────────────────────── */
+    function loadFromStorage() {
+      try {
+        const raw = localStorage.getItem(LS_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+      } catch { return null; }
+    }
+
+    function saveToStorage() {
+      try {
+        localStorage.setItem(LS_KEY, JSON.stringify({ roulettes, activeId }));
+      } catch (e) {
+        setSaveStatus("⚠ 保存に失敗しました: " + e.message);
+      }
+    }
+
+    function initStorage() {
+      const stored = loadFromStorage();
+      if (stored && Array.isArray(stored.roulettes) && stored.roulettes.length > 0) {
+        roulettes = stored.roulettes;
+        activeId  = stored.activeId || roulettes[0].id;
+        // Ensure activeId actually exists
+        if (!roulettes.find(r => r.id === activeId)) activeId = roulettes[0].id;
+      } else {
+        // First visit: create default roulette
+        const id = genId();
+        roulettes = [{ id, name: "デフォルト", items: [...defaultItems] }];
+        activeId  = id;
+        saveToStorage();
+      }
+      loadActiveRoulette();
+    }
+
+    function genId() {
+      return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+    }
+
+    function loadActiveRoulette() {
+      const r = roulettes.find(r => r.id === activeId);
+      if (!r) return;
+      items = [...r.items];
+      syncBulkInput();
+      render();
+    }
+
+    function persistCurrentItems() {
+      const r = roulettes.find(r => r.id === activeId);
+      if (!r) return;
+      r.items = [...items];
+      saveToStorage();
+      setSaveStatus("保存しました ✓");
+    }
+
+    let saveTimer = 0;
+    function queueSave() {
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => persistCurrentItems(), 300);
+    }
+
+    function setSaveStatus(msg) {
+      saveStatus.textContent = msg;
+    }
+
+    /* ── Roulette list management ── */
+    function renderRouletteControls() {
+      rouletteSelect.innerHTML = "";
+      roulettes.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = r.id;
+        opt.textContent = r.name || "名称未設定";
+        rouletteSelect.append(opt);
+      });
+      rouletteSelect.value = activeId;
+      deleteRouletteButton.disabled = roulettes.length <= 1;
+    }
+
+    function createRoulette(name) {
+      const cleanName = (name || "").trim().slice(0, 24) || `ルーレット ${roulettes.length + 1}`;
+      const id = genId();
+      roulettes.push({ id, name: cleanName, items: [...items] });
+      activeId = id;
+      newRouletteName.value = "";
+      saveToStorage();
+      setSaveStatus(`「${cleanName}」を作成しました。`);
+      renderRouletteControls();
+    }
+
+    function deleteActiveRoulette() {
+      if (roulettes.length <= 1) return;
+      roulettes = roulettes.filter(r => r.id !== activeId);
+      activeId = roulettes[0].id;
+      saveToStorage();
+      setSaveStatus("削除しました。");
+      renderRouletteControls();
+      loadActiveRoulette();
+    }
 
     /* ── Sound ── */
     let soundEnabled = true;
@@ -579,9 +628,6 @@
       soundEnabled = !soundEnabled;
       soundToggle.textContent = soundEnabled ? "🔊" : "🔇";
     });
-
-    /* ── Spin RAF handle ── */
-    let spinRaf = null;
 
     /* ── Confetti ── */
     let confettiParticles = [];
@@ -672,7 +718,6 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#fff";
 
-        // Scale font size down for many items
         const fontSize = Math.max(18, Math.min(34, 34 - Math.max(0, items.length - 8) * 1.6));
         ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
 
@@ -713,7 +758,7 @@
           items[index] = input.value.trim() || `候補${index + 1}`;
           syncBulkInput();
           drawWheel();
-          queueSaveItems();
+          queueSave();
         });
 
         const remove = document.createElement("button");
@@ -721,12 +766,11 @@
         remove.type = "button";
         remove.textContent = "×";
         remove.title = "削除";
-        remove.ariaLabel = `${item}を削除`;
         remove.addEventListener("click", () => {
           items.splice(index, 1);
           syncBulkInput();
           render();
-          queueSaveItems();
+          queueSave();
         });
 
         row.append(swatch, input, remove);
@@ -748,7 +792,7 @@
         .map(i => i.slice(0, 40));
     }
 
-    /* ── Spin (RAF two-phase: constant speed → decelerate) ── */
+    /* ── Spin ── */
     function spin() {
       if (spinning || items.length < 2) return;
       spinning = true;
@@ -758,34 +802,25 @@
       resultText.textContent = "回転中...";
       if (spinRaf) cancelAnimationFrame(spinRaf);
 
-      // 1. Decide winner up front
       const selected        = Math.floor(Math.random() * items.length);
       const sliceDeg        = 360 / items.length;
       const selectedCenter  = selected * sliceDeg + sliceDeg / 2;
-      const targetAtPointer = 360 - selectedCenter; // angle (mod 360) where pointer hits center of winning slice
+      const targetAtPointer = 360 - selectedCenter;
 
-      // 2. Constant-speed phase: random 3–5 s at 1.5 deg/ms
       const constDuration = 3000 + Math.random() * 2000;
-      const speed         = 1.5; // deg/ms
+      const speed         = 1.5;
       const constDeg      = speed * constDuration;
-      const afterConst    = rotation + constDeg; // absolute rotation after constant phase
+      const afterConst    = rotation + constDeg;
 
-      // 3. Decel phase: exactly 4 s
       const decelDuration = 4000;
       const totalDuration = constDuration + decelDuration;
 
-      // How far do we need to travel in the decel phase to land on the target?
       const currentMod = afterConst % 360;
       let extraDeg = (targetAtPointer - currentMod + 360) % 360;
-      // Ensure at least one full turn during decel so it doesn't feel abrupt
       extraDeg += 360 * Math.ceil(Math.max(1, (speed * decelDuration * 0.5 - extraDeg) / 360));
 
       const decelStartRot = afterConst;
       const decelEndRot   = afterConst + extraDeg;
-
-      // Hermite spline: velocity at t=0 matches constant speed, velocity at t=1 is 0
-      // p(t) = (t³-2t²+t)*m0 + (-2t³+3t²)*extraDeg   (p0=0, p1=extraDeg, m1=0)
-      // m0 = speed * decelDuration  (tangent in [0,1]-t space)
       const m0 = speed * decelDuration;
 
       function hermiteDecel(t) {
@@ -812,7 +847,6 @@
         canvas.style.transition = "none";
         canvas.style.transform  = `rotate(${currentRot}deg)`;
 
-        // Tick on segment boundary crossing
         const currentAngle = ((currentRot % 360) + 360) % 360;
         const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
         const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
@@ -844,7 +878,7 @@
 
     /* ── Overlay ── */
     function hideResultOverlay() {
-      window.clearTimeout(revealTimer);
+      clearTimeout(revealTimer);
       resultOverlay.classList.remove("is-visible");
       document.body.classList.remove("result-open");
     }
@@ -855,208 +889,12 @@
       document.body.classList.add("result-open");
     }
 
-    /* ── Firebase ── */
-    let firebaseApi = null;
-    let auth = null;
-    let db   = null;
-    let currentUser = null;
-    let roulettes   = [];
-    let activeRouletteId    = null;
-    let unsubscribeRoulettes = null;
-    let unsubscribeItems     = null;
-    let saveTimer = 0;
-    let applyingRemoteItems  = false;
-    let creatingInitialRoulette = false;
-
-    function renderRouletteControls() {
-      const signedIn = Boolean(currentUser);
-      rouletteSelect.disabled     = !signedIn || roulettes.length === 0;
-      newRouletteName.disabled    = !signedIn;
-      createRouletteButton.disabled = !signedIn;
-      deleteRouletteButton.disabled = !signedIn || roulettes.length <= 1 || !activeRouletteId;
-      rouletteSelect.innerHTML = "";
-      if (roulettes.length === 0) {
-        const option = document.createElement("option");
-        option.value = "";
-        option.textContent = signedIn ? "読み込み中" : "未保存";
-        rouletteSelect.append(option);
-        return;
-      }
-      roulettes.forEach((r) => {
-        const option = document.createElement("option");
-        option.value = r.id;
-        option.textContent = r.name || "名称未設定";
-        rouletteSelect.append(option);
-      });
-      rouletteSelect.value = activeRouletteId || roulettes[0].id;
-    }
-
-    function hasFirebaseConfig() {
-      return Boolean(firebaseConfig.apiKey && firebaseConfig.authDomain &&
-        firebaseConfig.projectId && firebaseConfig.appId);
-    }
-
-    function setAuthStatus(message) { authStatus.textContent = message; }
-
-    function getUserRoulettesRef(user) {
-      return firebaseApi.ref(db, `users/${user.uid}/roulette`);
-    }
-
-    function getUserItemsRef(user, rouletteId = activeRouletteId) {
-      return firebaseApi.ref(db, `users/${user.uid}/roulette/${rouletteId}`);
-    }
-
-    function queueSaveItems() {
-      if (!currentUser || !firebaseApi || !activeRouletteId || applyingRemoteItems) return;
-      const user       = currentUser;
-      const rouletteId = activeRouletteId;
-      const itemsToSave = [...items];
-      window.clearTimeout(saveTimer);
-      saveTimer = window.setTimeout(async () => {
-        try {
-          await firebaseApi.update(getUserItemsRef(user, rouletteId), {
-            items: itemsToSave,
-            updatedAt: Date.now()
-          });
-          setAuthStatus("保存しました。");
-        } catch (error) {
-          setAuthStatus(`保存に失敗しました: ${error.message}`);
-        }
-      }, 350);
-    }
-
-    function startUserItemsSync(user, rouletteId) {
-      if (unsubscribeItems) unsubscribeItems();
-      unsubscribeItems = firebaseApi.onValue(getUserItemsRef(user, rouletteId), (snapshot) => {
-        const savedItems = snapshot.val()?.items;
-        if (!Array.isArray(savedItems)) { queueSaveItems(); return; }
-        applyingRemoteItems = true;
-        items = savedItems.filter(i => typeof i === "string" && i.trim()).map(i => i.trim().slice(0, 40));
-        syncBulkInput();
-        resultText.textContent = "まだ回していません";
-        hideResultOverlay();
-        render();
-        applyingRemoteItems = false;
-        setAuthStatus("保存済みの候補を読み込みました。");
-      }, (error) => {
-        setAuthStatus(`読み込みに失敗しました: ${error.message}`);
-      });
-    }
-
-    async function createRoulette(name = "") {
-      if (!currentUser || !firebaseApi) return;
-      const cleanName = name.trim().slice(0, 24) || `ルーレット ${roulettes.length + 1}`;
-      try {
-        const docRef = firebaseApi.push(getUserRoulettesRef(currentUser));
-        await firebaseApi.set(docRef, { name: cleanName, items: [...items], createdAt: Date.now(), updatedAt: Date.now() });
-        activeRouletteId = docRef.key;
-        newRouletteName.value = "";
-        setAuthStatus(`${cleanName}を作成しました。`);
-        renderRouletteControls();
-        startUserItemsSync(currentUser, activeRouletteId);
-      } catch (error) {
-        setAuthStatus(`作成に失敗しました: ${error.message}`);
-      }
-    }
-
-    async function deleteActiveRoulette() {
-      if (!currentUser || !activeRouletteId || roulettes.length <= 1) return;
-      const deletingId   = activeRouletteId;
-      const nextRoulette = roulettes.find(r => r.id !== deletingId);
-      try {
-        await firebaseApi.remove(getUserItemsRef(currentUser, deletingId));
-        activeRouletteId = nextRoulette?.id || null;
-        if (activeRouletteId) startUserItemsSync(currentUser, activeRouletteId);
-        setAuthStatus("削除しました。");
-        renderRouletteControls();
-      } catch (error) {
-        setAuthStatus(`削除に失敗しました: ${error.message}`);
-      }
-    }
-
-    function startRoulettesSync(user) {
-      if (unsubscribeRoulettes) unsubscribeRoulettes();
-      unsubscribeRoulettes = firebaseApi.onValue(getUserRoulettesRef(user), (snapshot) => {
-        const savedRoulettes = snapshot.val() || {};
-        roulettes = Object.entries(savedRoulettes)
-          .map(([id, value]) => ({ id, name: value?.name, items: value?.items, updatedAt: value?.updatedAt || 0 }))
-          .sort((a, b) => b.updatedAt - a.updatedAt);
-        if (roulettes.length === 0) {
-          renderRouletteControls();
-          if (!creatingInitialRoulette) {
-            creatingInitialRoulette = true;
-            createRoulette("デフォルト").finally(() => { creatingInitialRoulette = false; });
-          }
-          return;
-        }
-        const activeExists = roulettes.some(r => r.id === activeRouletteId);
-        if (!activeRouletteId || !activeExists) {
-          activeRouletteId = roulettes[0].id;
-          startUserItemsSync(user, activeRouletteId);
-        }
-        renderRouletteControls();
-      }, (error) => {
-        setAuthStatus(`保存データの読み込みに失敗しました: ${error.message}`);
-      });
-    }
-
-    async function setupFirebase() {
-      if (!hasFirebaseConfig()) return;
-      try {
-        const [{ initializeApp }, authModule, databaseModule] = await Promise.all([
-          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js"),
-          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js"),
-          import("https://www.gstatic.com/firebasejs/12.7.0/firebase-database.js")
-        ]);
-        firebaseApi = { ...authModule, ...databaseModule };
-        const app = initializeApp(firebaseConfig);
-        auth = authModule.getAuth(app);
-        db   = databaseModule.getDatabase(app);
-        authModule.onAuthStateChanged(auth, (user) => {
-          currentUser = user;
-          authBox.classList.toggle("is-signed-in", Boolean(user));
-          if (!user) {
-            if (unsubscribeRoulettes) unsubscribeRoulettes();
-            if (unsubscribeItems) unsubscribeItems();
-            unsubscribeRoulettes = null;
-            unsubscribeItems     = null;
-            roulettes = [];
-            activeRouletteId = null;
-            userLabel.textContent = "";
-            renderRouletteControls();
-            setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
-            return;
-          }
-          userLabel.textContent = "この端末で保存中";
-          setAuthStatus("保存データを読み込んでいます。");
-          startRoulettesSync(user);
-        });
-        setAuthStatus("この端末で保存を始めると、候補を自動保存します。");
-      } catch (error) {
-        setAuthStatus(`Firebaseの読み込みに失敗しました: ${error.message}`);
-      }
-    }
-
-    async function signInAnonymouslyForDevice() {
-      if (!auth) { setAuthStatus("先にFirebase設定を入力してください。"); return; }
-      try {
-        await firebaseApi.signInAnonymously(auth);
-      } catch (error) {
-        setAuthStatus(`保存開始に失敗しました: ${error.message}`);
-      }
-    }
-
-    /* ── Sync helpers that respect textarea focus ── */
+    /* ── Sync helpers ── */
     let bulkFocused = false;
     bulkItems.addEventListener("focus", () => { bulkFocused = true; });
-    bulkItems.addEventListener("blur",  () => {
-      bulkFocused = false;
-      // Re-sync textarea now that user has finished typing
-      syncBulkInput();
-    });
+    bulkItems.addEventListener("blur",  () => { bulkFocused = false; syncBulkInput(); });
 
     function syncBulkInput() {
-      // Don't overwrite while the user is actively typing in the textarea
       if (!bulkFocused) bulkItems.value = items.join("\n");
     }
 
@@ -1065,32 +903,37 @@
       items = getItemsFromText(bulkItems.value);
       resultText.textContent = "まだ回していません";
       hideResultOverlay();
-      // Only update wheel + item list, NOT the textarea itself
       renderItems();
       drawWheel();
-      queueSaveItems();
+      queueSave();
     });
 
     spinButton.addEventListener("click", spin);
     hubSpin.addEventListener("click", spin);
     resultOverlay.addEventListener("click", hideResultOverlay);
-    anonymousLoginButton.addEventListener("click", signInAnonymouslyForDevice);
-    logoutButton.addEventListener("click", () => firebaseApi?.signOut(auth));
-    createRouletteButton.addEventListener("click", () => createRoulette(newRouletteName.value));
+
+    createRouletteButton.addEventListener("click", () => {
+      createRoulette(newRouletteName.value);
+    });
+
     deleteRouletteButton.addEventListener("click", deleteActiveRoulette);
+
     rouletteSelect.addEventListener("change", () => {
-      activeRouletteId = rouletteSelect.value;
+      activeId = rouletteSelect.value;
       resultText.textContent = "まだ回していません";
       hideResultOverlay();
-      startUserItemsSync(currentUser, activeRouletteId);
+      rotation = 0;
+      canvas.style.transform = "rotate(0deg)";
+      loadActiveRoulette();
       renderRouletteControls();
+      setSaveStatus("切り替えました。");
     });
 
     shuffleButton.addEventListener("click", () => {
       items = items.map(v => ({ v, s: Math.random() })).sort((a, b) => a.s - b.s).map(({ v }) => v);
       syncBulkInput();
       render();
-      queueSaveItems();
+      queueSave();
     });
 
     resetButton.addEventListener("click", () => {
@@ -1102,14 +945,12 @@
       hideResultOverlay();
       syncBulkInput();
       render();
-      queueSaveItems();
+      queueSave();
     });
 
     /* ── Init ── */
-    syncBulkInput();
-    render();
+    initStorage();
     renderRouletteControls();
-    setupFirebase();
   </script>
 </body>
 </html>
