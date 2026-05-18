@@ -260,13 +260,19 @@
 
     .item {
       display: grid;
-      grid-template-columns: 26px 1fr 34px;
-      gap: 10px;
+      grid-template-columns: 26px 1fr 36px 34px;
+      gap: 8px;
       align-items: center;
       border: 1px solid var(--line);
       border-radius: 8px;
       background: #fff;
       padding: 8px;
+      transition: opacity 0.2s ease;
+    }
+
+    .item.hidden-item {
+      opacity: 0.45;
+      background: #f8f9fc;
     }
 
     .swatch {
@@ -285,6 +291,35 @@
       color: var(--ink);
       background: transparent;
       padding: 6px 0;
+    }
+
+    .item.hidden-item input {
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    /* 表示/非表示ボタン */
+    .toggle-vis {
+      width: 36px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f3f6fb;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 0.95rem;
+      display: grid;
+      place-items: center;
+      transition: background 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .toggle-vis:hover { background: #e8edf6; color: var(--ink); }
+
+    .item.hidden-item .toggle-vis {
+      background: #fff0e8;
+      color: #c2410c;
+      border-color: #fcd9c8;
     }
 
     .remove {
@@ -310,6 +345,7 @@
       font-weight: 700;
     }
 
+    /* ── Result Overlay ── */
     .result-overlay {
       position: fixed;
       inset: 0;
@@ -323,6 +359,8 @@
       pointer-events: none;
       transition: opacity 0.22s ease;
       border: 0;
+      /* ボタンのデフォルトスタイルをリセット */
+      cursor: default;
     }
 
     .result-overlay.is-visible { opacity: 1; pointer-events: auto; }
@@ -331,13 +369,13 @@
       width: min(760px, 100%);
       min-height: 260px;
       border: 1px solid rgba(255,255,255,0.58);
-      border-radius: 8px;
+      border-radius: 16px;
       background: rgba(255,255,255,0.94);
       box-shadow: 0 26px 80px rgba(9,16,30,0.28);
       display: grid;
-      place-items: center;
-      gap: 12px;
-      padding: 36px;
+      grid-template-rows: auto 1fr auto;
+      gap: 8px;
+      padding: 36px 36px 28px;
       text-align: center;
       transform: scale(0.92);
       transition: transform 0.22s ease;
@@ -352,7 +390,49 @@
       font-size: clamp(3.2rem, 11vw, 7.6rem);
       line-height: 1;
       overflow-wrap: anywhere;
+      display: block;
+      padding: 12px 0;
     }
+
+    /* オーバーレイ下部ボタン */
+    .overlay-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .overlay-btn {
+      min-height: 48px;
+      border-radius: 10px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: transform 0.12s ease, opacity 0.12s ease;
+      border: 2px solid transparent;
+    }
+
+    .overlay-btn:hover { transform: translateY(-1px); }
+    .overlay-btn:active { transform: translateY(0); opacity: 0.85; }
+
+    .overlay-btn-hide {
+      background: #f3f6fb;
+      color: var(--muted);
+      border-color: var(--line);
+    }
+
+    .overlay-btn-hide:hover {
+      background: #e8ecf5;
+      color: var(--ink);
+    }
+
+    .overlay-btn-close {
+      background: var(--ink);
+      color: #fff;
+      border-color: var(--ink);
+    }
+
+    .overlay-btn-close:hover { background: #2a3548; }
 
     #confettiCanvas {
       position: fixed;
@@ -424,12 +504,17 @@
     </aside>
   </main>
 
-  <button class="result-overlay" id="resultOverlay" type="button" aria-label="結果を閉じる">
+  <!-- Result Overlay: クリック背景では閉じない。ボタンで操作 -->
+  <div class="result-overlay" id="resultOverlay" role="dialog" aria-modal="true" aria-label="結果">
     <span class="result-pop">
       <small>結果</small>
       <strong id="bigResultText"></strong>
+      <div class="overlay-actions">
+        <button class="overlay-btn overlay-btn-hide" id="overlayHideBtn" type="button">非表示にする</button>
+        <button class="overlay-btn overlay-btn-close" id="overlayCloseBtn" type="button">閉じる</button>
+      </div>
     </span>
-  </button>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
@@ -447,35 +532,38 @@
       measurementId: "G-GKVTEGVSN2"
     };
 
-    // Firebaseの初期化
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const dbRef = ref(db, "roulette_data");
 
     /* ── DOM refs ── */
-    const canvas         = document.getElementById("wheel");
-    const ctx            = canvas.getContext("2d");
-    const pointer        = document.getElementById("pointer");
-    const itemsEl        = document.getElementById("items");
-    const resultText     = document.getElementById("resultText");
-    const spinButton     = document.getElementById("spinButton");
-    const hubSpin        = document.getElementById("hubSpin");
-    const resultOverlay  = document.getElementById("resultOverlay");
-    const bigResultText  = document.getElementById("bigResultText");
-    const bulkItems      = document.getElementById("bulkItems");
-    const shuffleButton  = document.getElementById("shuffleButton");
-    const resetButton    = document.getElementById("resetButton");
-    const rouletteSelect = document.getElementById("rouletteSelect");
-    const newRouletteName = document.getElementById("newRouletteName");
+    const canvas             = document.getElementById("wheel");
+    const ctx                = canvas.getContext("2d");
+    const pointer            = document.getElementById("pointer");
+    const itemsEl            = document.getElementById("items");
+    const resultText         = document.getElementById("resultText");
+    const spinButton         = document.getElementById("spinButton");
+    const hubSpin            = document.getElementById("hubSpin");
+    const resultOverlay      = document.getElementById("resultOverlay");
+    const bigResultText      = document.getElementById("bigResultText");
+    const overlayHideBtn     = document.getElementById("overlayHideBtn");
+    const overlayCloseBtn    = document.getElementById("overlayCloseBtn");
+    const bulkItems          = document.getElementById("bulkItems");
+    const shuffleButton      = document.getElementById("shuffleButton");
+    const resetButton        = document.getElementById("resetButton");
+    const rouletteSelect     = document.getElementById("rouletteSelect");
+    const newRouletteName    = document.getElementById("newRouletteName");
     const createRouletteButton = document.getElementById("createRouletteButton");
     const deleteRouletteButton = document.getElementById("deleteRouletteButton");
-    const saveStatus     = document.getElementById("saveStatus");
-    const soundToggle    = document.getElementById("soundToggle");
-    const confettiCanvas = document.getElementById("confettiCanvas");
-    const confettiCtx    = confettiCanvas.getContext("2d");
+    const saveStatus         = document.getElementById("saveStatus");
+    const soundToggle        = document.getElementById("soundToggle");
+    const confettiCanvas     = document.getElementById("confettiCanvas");
+    const confettiCtx        = confettiCanvas.getContext("2d");
 
     /* ── Constants ── */
     const defaultItems = ["ランチ", "散歩", "読書", "掃除", "映画", "勉強"];
+    const items1to20   = Array.from({ length: 20 }, (_, i) => String(i + 1));
+
     const colors = [
       "#0f8b8d","#f18f01","#7c3aed","#e11d48",
       "#2563eb","#16a34a","#ea580c","#0891b2",
@@ -483,8 +571,9 @@
       "#d97706","#059669","#dc2626","#7c3aed"
     ];
 
-    /* ── State ── */
-    let items    = [...defaultItems];
+    /* ── State ──
+       items は { label: string, visible: boolean }[] の形式で管理 */
+    let items    = defaultItems.map(l => ({ label: l, visible: true }));
     let rotation = 0;
     let spinning = false;
     let spinRaf  = null;
@@ -493,9 +582,12 @@
     let roulettes = [];
     let activeId  = null;
 
-    /* ────────────────────────────────────────────
-       Firebase Realtime Database persistence
-    ──────────────────────────────────────────── */
+    /* ── ヘルパー: visibleなitemsのlabelのみ ── */
+    function visibleLabels() {
+      return items.filter(i => i.visible).map(i => i.label);
+    }
+
+    /* ── Firebase ── */
     function saveToFirebase() {
       set(dbRef, { roulettes, activeId })
         .then(() => setSaveStatus("クラウドに保存しました ✓"))
@@ -503,7 +595,6 @@
     }
 
     function initFirebaseSync() {
-      // データベースの値が変更されたらリアルタイムに画面を同期する
       onValue(dbRef, (snapshot) => {
         const data = snapshot.val();
         if (data && Array.isArray(data.roulettes) && data.roulettes.length > 0) {
@@ -511,12 +602,23 @@
           activeId  = data.activeId || roulettes[0].id;
           if (!roulettes.find(r => r.id === activeId)) activeId = roulettes[0].id;
         } else {
-          // データがない場合（初回起動時など）のデフォルト作成
-          const id = genId();
-          roulettes = [{ id, name: "デフォルト", items: [...defaultItems] }];
-          activeId  = id;
+          /* 初回: デフォルト + 1-20 の2つを作成 */
+          const idDef  = genId();
+          const id1to20 = genId();
+          roulettes = [
+            { id: idDef,   name: "デフォルト", items: defaultItems.map(l => ({ label: l, visible: true })) },
+            { id: id1to20, name: "1-20",       items: items1to20.map(l => ({ label: l, visible: true })) }
+          ];
+          activeId = idDef;
           saveToFirebase();
         }
+        /* 旧データ（string[]）を新形式に変換 */
+        roulettes = roulettes.map(r => ({
+          ...r,
+          items: r.items.map(i =>
+            typeof i === "string" ? { label: i, visible: true } : i
+          )
+        }));
         loadActiveRoulette();
         renderRouletteControls();
         setSaveStatus("クラウドと同期中");
@@ -530,7 +632,9 @@
     function loadActiveRoulette() {
       const r = roulettes.find(r => r.id === activeId);
       if (!r) return;
-      items = [...r.items];
+      items = r.items.map(i =>
+        typeof i === "string" ? { label: i, visible: true } : { ...i }
+      );
       syncBulkInput();
       render();
     }
@@ -538,7 +642,7 @@
     function persistCurrentItems() {
       const r = roulettes.find(r => r.id === activeId);
       if (!r) return;
-      r.items = [...items];
+      r.items = items.map(i => ({ ...i }));
       saveToFirebase();
     }
 
@@ -548,9 +652,7 @@
       saveTimer = setTimeout(() => persistCurrentItems(), 300);
     }
 
-    function setSaveStatus(msg) {
-      saveStatus.textContent = msg;
-    }
+    function setSaveStatus(msg) { saveStatus.textContent = msg; }
 
     /* ── Roulette list management ── */
     function renderRouletteControls() {
@@ -568,7 +670,7 @@
     function createRoulette(name) {
       const cleanName = (name || "").trim().slice(0, 24) || `ルーレット ${roulettes.length + 1}`;
       const id = genId();
-      roulettes.push({ id, name: cleanName, items: [...items] });
+      roulettes.push({ id, name: cleanName, items: items.map(i => ({ ...i })) });
       activeId = id;
       newRouletteName.value = "";
       saveToFirebase();
@@ -686,7 +788,9 @@
       const radius = center - 34;
       ctx.clearRect(0, 0, size, size);
 
-      if (items.length === 0) {
+      const visLabels = visibleLabels();
+
+      if (visLabels.length === 0) {
         ctx.beginPath();
         ctx.arc(center, center, radius, 0, Math.PI * 2);
         ctx.fillStyle = "#e6eaf2";
@@ -699,9 +803,9 @@
         return;
       }
 
-      const slice = (Math.PI * 2) / items.length;
+      const slice = (Math.PI * 2) / visLabels.length;
 
-      items.forEach((label, index) => {
+      visLabels.forEach((label, index) => {
         const start = index * slice - Math.PI / 2;
         const end   = start + slice;
         ctx.beginPath();
@@ -721,7 +825,7 @@
         ctx.textBaseline = "middle";
         ctx.fillStyle = "#fff";
 
-        const fontSize = Math.max(18, Math.min(34, 34 - Math.max(0, items.length - 8) * 1.6));
+        const fontSize = Math.max(18, Math.min(34, 34 - Math.max(0, visLabels.length - 8) * 1.6));
         ctx.font = `800 ${fontSize}px system-ui, sans-serif`;
 
         fitText(label, radius - 42, 0, radius * 0.58);
@@ -747,20 +851,37 @@
       itemsEl.innerHTML = "";
       items.forEach((item, index) => {
         const row = document.createElement("div");
-        row.className = "item";
+        row.className = "item" + (item.visible ? "" : " hidden-item");
 
         const swatch = document.createElement("span");
         swatch.className = "swatch";
-        swatch.style.background = colors[index % colors.length];
+        /* 非表示の場合は色をグレーに */
+        const visIdx = items.slice(0, index).filter(i => i.visible).length;
+        swatch.style.background = item.visible
+          ? colors[visIdx % colors.length]
+          : "#cbd5e1";
 
         const input = document.createElement("input");
-        input.value = item;
+        input.value = item.label;
         input.maxLength = 40;
         input.ariaLabel = `${index + 1}番目の候補`;
         input.addEventListener("input", () => {
-          items[index] = input.value.trim() || `候補${index + 1}`;
+          items[index].label = input.value.trim() || `候補${index + 1}`;
           syncBulkInput();
           drawWheel();
+          queueSave();
+        });
+
+        /* 表示/非表示トグルボタン */
+        const toggleVis = document.createElement("button");
+        toggleVis.className = "toggle-vis";
+        toggleVis.type = "button";
+        toggleVis.title = item.visible ? "非表示にする" : "表示する";
+        toggleVis.textContent = item.visible ? "👁" : "🚫";
+        toggleVis.addEventListener("click", () => {
+          items[index].visible = !items[index].visible;
+          syncBulkInput();
+          render();
           queueSave();
         });
 
@@ -776,11 +897,12 @@
           queueSave();
         });
 
-        row.append(swatch, input, remove);
+        row.append(swatch, input, toggleVis, remove);
         itemsEl.append(row);
       });
 
-      const disabled = items.length < 2 || spinning;
+      const vl = visibleLabels();
+      const disabled = vl.length < 2 || spinning;
       spinButton.disabled = disabled;
       hubSpin.disabled    = disabled;
     }
@@ -795,9 +917,20 @@
         .map(i => i.slice(0, 40));
     }
 
+    /* ── Sync helpers ── */
+    let bulkFocused = false;
+    bulkItems.addEventListener("focus", () => { bulkFocused = true; });
+    bulkItems.addEventListener("blur",  () => { bulkFocused = false; syncBulkInput(); });
+
+    function syncBulkInput() {
+      /* テキストエリアにはすべてのラベルを表示（非表示含む） */
+      if (!bulkFocused) bulkItems.value = items.map(i => i.label).join("\n");
+    }
+
     /* ── Spin ── */
     function spin() {
-      if (spinning || items.length < 2) return;
+      const vl = visibleLabels();
+      if (spinning || vl.length < 2) return;
       spinning = true;
       spinButton.disabled = true;
       hubSpin.disabled    = true;
@@ -805,8 +938,8 @@
       resultText.textContent = "回転中...";
       if (spinRaf) cancelAnimationFrame(spinRaf);
 
-      const selected        = Math.floor(Math.random() * items.length);
-      const sliceDeg        = 360 / items.length;
+      const selected        = Math.floor(Math.random() * vl.length);
+      const sliceDeg        = 360 / vl.length;
       const selectedCenter  = selected * sliceDeg + sliceDeg / 2;
       const targetAtPointer = 360 - selectedCenter;
 
@@ -868,11 +1001,11 @@
         } else {
           rotation = decelEndRot;
           spinning = false;
-          resultText.textContent = items[selected];
+          resultText.textContent = vl[selected];
           renderItems();
           playFanfare();
           launchConfetti();
-          showResultOverlay(items[selected]);
+          showResultOverlay(vl[selected]);
         }
       }
 
@@ -888,22 +1021,40 @@
 
     function showResultOverlay(value) {
       bigResultText.textContent = value;
+      /* 「非表示にする」ボタンのラベルをリセット */
+      overlayHideBtn.textContent = "非表示にする";
+      overlayHideBtn.disabled = false;
       resultOverlay.classList.add("is-visible");
       document.body.classList.add("result-open");
     }
 
-    /* ── Sync helpers ── */
-    let bulkFocused = false;
-    bulkItems.addEventListener("focus", () => { bulkFocused = true; });
-    bulkItems.addEventListener("blur",  () => { bulkFocused = false; syncBulkInput(); });
+    /* 「非表示にする」: 結果の候補をvisible=falseにしてオーバーレイを閉じる */
+    overlayHideBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const resultLabel = bigResultText.textContent;
+      const target = items.find(i => i.label === resultLabel && i.visible);
+      if (target) {
+        target.visible = false;
+        syncBulkInput();
+        render();
+        queueSave();
+        setSaveStatus(`「${resultLabel}」を非表示にしました`);
+      }
+      hideResultOverlay();
+    });
 
-    function syncBulkInput() {
-      if (!bulkFocused) bulkItems.value = items.join("\n");
-    }
+    /* 「閉じる」: そのまま閉じるだけ */
+    overlayCloseBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      hideResultOverlay();
+    });
 
     /* ── Event listeners ── */
     bulkItems.addEventListener("input", () => {
-      items = getItemsFromText(bulkItems.value);
+      const newLabels = getItemsFromText(bulkItems.value);
+      /* visibilityを既存ラベルから引き継ぐ */
+      const oldMap = new Map(items.map(i => [i.label, i.visible]));
+      items = newLabels.map(l => ({ label: l, visible: oldMap.has(l) ? oldMap.get(l) : true }));
       resultText.textContent = "まだ回していません";
       hideResultOverlay();
       renderItems();
@@ -913,7 +1064,6 @@
 
     spinButton.addEventListener("click", spin);
     hubSpin.addEventListener("click", spin);
-    resultOverlay.addEventListener("click", hideResultOverlay);
 
     createRouletteButton.addEventListener("click", () => {
       createRoulette(newRouletteName.value);
@@ -929,18 +1079,18 @@
       canvas.style.transform = "rotate(0deg)";
       loadActiveRoulette();
       setSaveStatus("切り替えました。");
-      saveToFirebase(); // 選択中のIDを更新
+      saveToFirebase();
     });
 
     shuffleButton.addEventListener("click", () => {
-      items = items.map(v => ({ v, s: Math.random() })).sort((a, b) => a.s - b.s).map(({ v }) => v);
+      items = items.map(v => ({ ...v, s: Math.random() })).sort((a, b) => a.s - b.s).map(({ label, visible }) => ({ label, visible }));
       syncBulkInput();
       render();
       queueSave();
     });
 
     resetButton.addEventListener("click", () => {
-      items = [...defaultItems];
+      items = defaultItems.map(l => ({ label: l, visible: true }));
       resultText.textContent = "まだ回していません";
       rotation = 0;
       canvas.style.transition = "none";
