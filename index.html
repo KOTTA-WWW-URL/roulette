@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>自動保存ルーレット</title>
+  <title>保存ルーレット</title>
   <style>
     :root {
       color-scheme: light;
@@ -136,7 +136,6 @@
     .result small { color: var(--muted); font-weight: 700; }
     .result strong { font-size: clamp(1.4rem, 4vw, 2.4rem); line-height: 1.1; overflow-wrap: anywhere; }
 
-    /* Sound toggle */
     .sound-toggle {
       position: absolute;
       top: 8px;
@@ -213,6 +212,69 @@
       color: var(--muted);
       font-size: 0.82rem;
       min-height: 18px;
+    }
+
+    /* Device ID area */
+    .device-id-area {
+      display: grid;
+      gap: 6px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #f8f9fc;
+      padding: 10px 12px;
+    }
+
+    .device-id-label {
+      color: var(--muted);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .device-id-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .device-id-input {
+      width: 100%;
+      min-width: 0;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 7px 10px;
+      background: #fff;
+      color: var(--ink);
+      font-size: 0.78rem;
+      font-family: monospace;
+      outline: none;
+    }
+
+    .device-id-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(15,139,141,0.14);
+    }
+
+    .device-id-apply {
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      background: var(--accent);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.82rem;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s;
+    }
+
+    .device-id-apply:hover { background: var(--accent-dark); }
+
+    .device-id-hint {
+      color: var(--muted);
+      font-size: 0.76rem;
+      line-height: 1.5;
     }
 
     .bulk-input {
@@ -298,7 +360,6 @@
       color: var(--muted);
     }
 
-    /* 表示/非表示ボタン */
     .toggle-vis {
       width: 36px;
       height: 34px;
@@ -345,7 +406,6 @@
       font-weight: 700;
     }
 
-    /* ── Result Overlay ── */
     .result-overlay {
       position: fixed;
       inset: 0;
@@ -359,7 +419,6 @@
       pointer-events: none;
       transition: opacity 0.22s ease;
       border: 0;
-      /* ボタンのデフォルトスタイルをリセット */
       cursor: default;
     }
 
@@ -394,7 +453,6 @@
       padding: 12px 0;
     }
 
-    /* オーバーレイ下部ボタン */
     .overlay-actions {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -481,14 +539,23 @@
       <h2>候補（何個でも追加可）</h2>
 
       <section class="save-manager" aria-label="保存データ">
-        <label for="rouletteSelect">保存データ (Cloud)</label>
+        <label for="rouletteSelect">保存データ (このデバイス)</label>
         <select class="save-select" id="rouletteSelect"></select>
         <input class="save-name" id="newRouletteName" type="text" maxlength="24" placeholder="新しい保存名">
         <div class="save-actions">
           <button class="save-button" id="createRouletteButton" type="button">新規保存</button>
           <button class="save-button danger" id="deleteRouletteButton" type="button">削除</button>
         </div>
-        <div class="save-status" id="saveStatus">Firebaseに接続中...</div>
+        <div class="save-status" id="saveStatus">接続中...</div>
+      </section>
+
+      <section class="device-id-area" aria-label="デバイスID">
+        <span class="device-id-label">📱 デバイスID（このデバイス固有）</span>
+        <div class="device-id-row">
+          <input class="device-id-input" id="deviceIdInput" type="text" maxlength="48" spellcheck="false">
+          <button class="device-id-apply" id="deviceIdApply" type="button">適用</button>
+        </div>
+        <span class="device-id-hint">別のデバイスと同じIDを入力すると、データを共有できます。</span>
       </section>
 
       <textarea class="bulk-input" id="bulkItems" spellcheck="false" placeholder="1行につき1候補（何行でもOK）"></textarea>
@@ -504,7 +571,6 @@
     </aside>
   </main>
 
-  <!-- Result Overlay: クリック背景では閉じない。ボタンで操作 -->
   <div class="result-overlay" id="resultOverlay" role="dialog" aria-modal="true" aria-label="結果">
     <span class="result-pop">
       <small>結果</small>
@@ -518,9 +584,8 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+    import { getDatabase, ref, set, onValue, off } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    /* ── Firebase Config ── */
     const firebaseConfig = {
       apiKey: "AIzaSyDekw8rSjt_0YHeBMCvBLWEH0vNyBtDTqk",
       authDomain: "roulette-edb61.firebaseapp.com",
@@ -532,35 +597,61 @@
       measurementId: "G-GKVTEGVSN2"
     };
 
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const dbRef = ref(db, "roulette_data");
+    const firebaseApp = initializeApp(firebaseConfig);
+    const db = getDatabase(firebaseApp);
+
+    /* ── Device ID: localStorageで管理 ── */
+    function genDeviceId() {
+      return "dev_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
+    }
+
+    function loadDeviceId() {
+      let id = localStorage.getItem("roulette_device_id");
+      if (!id) {
+        id = genDeviceId();
+        localStorage.setItem("roulette_device_id", id);
+      }
+      return id;
+    }
+
+    let deviceId = loadDeviceId();
+
+    /* ── Firebaseパスはデバイスごとに分離 ── */
+    let activeDbRef = null;
+    let activeListener = null;
+
+    function getDeviceRef(id) {
+      return ref(db, "roulette_data/" + id);
+    }
 
     /* ── DOM refs ── */
-    const canvas             = document.getElementById("wheel");
-    const ctx                = canvas.getContext("2d");
-    const pointer            = document.getElementById("pointer");
-    const itemsEl            = document.getElementById("items");
-    const resultText         = document.getElementById("resultText");
-    const spinButton         = document.getElementById("spinButton");
-    const hubSpin            = document.getElementById("hubSpin");
-    const resultOverlay      = document.getElementById("resultOverlay");
-    const bigResultText      = document.getElementById("bigResultText");
-    const overlayHideBtn     = document.getElementById("overlayHideBtn");
-    const overlayCloseBtn    = document.getElementById("overlayCloseBtn");
-    const bulkItems          = document.getElementById("bulkItems");
-    const shuffleButton      = document.getElementById("shuffleButton");
-    const resetButton        = document.getElementById("resetButton");
-    const rouletteSelect     = document.getElementById("rouletteSelect");
-    const newRouletteName    = document.getElementById("newRouletteName");
+    const canvas               = document.getElementById("wheel");
+    const ctx                  = canvas.getContext("2d");
+    const pointer              = document.getElementById("pointer");
+    const itemsEl              = document.getElementById("items");
+    const resultText           = document.getElementById("resultText");
+    const spinButton           = document.getElementById("spinButton");
+    const hubSpin              = document.getElementById("hubSpin");
+    const resultOverlay        = document.getElementById("resultOverlay");
+    const bigResultText        = document.getElementById("bigResultText");
+    const overlayHideBtn       = document.getElementById("overlayHideBtn");
+    const overlayCloseBtn      = document.getElementById("overlayCloseBtn");
+    const bulkItems            = document.getElementById("bulkItems");
+    const shuffleButton        = document.getElementById("shuffleButton");
+    const resetButton          = document.getElementById("resetButton");
+    const rouletteSelect       = document.getElementById("rouletteSelect");
+    const newRouletteName      = document.getElementById("newRouletteName");
     const createRouletteButton = document.getElementById("createRouletteButton");
     const deleteRouletteButton = document.getElementById("deleteRouletteButton");
-    const saveStatus         = document.getElementById("saveStatus");
-    const soundToggle        = document.getElementById("soundToggle");
-    const confettiCanvas     = document.getElementById("confettiCanvas");
-    const confettiCtx        = confettiCanvas.getContext("2d");
+    const saveStatus           = document.getElementById("saveStatus");
+    const soundToggle          = document.getElementById("soundToggle");
+    const confettiCanvas       = document.getElementById("confettiCanvas");
+    const confettiCtx          = confettiCanvas.getContext("2d");
+    const deviceIdInput        = document.getElementById("deviceIdInput");
+    const deviceIdApply        = document.getElementById("deviceIdApply");
 
-    /* ── Constants ── */
+    deviceIdInput.value = deviceId;
+
     const defaultItems = ["ランチ", "散歩", "読書", "掃除", "映画", "勉強"];
     const items1to20   = Array.from({ length: 20 }, (_, i) => String(i + 1));
 
@@ -571,39 +662,39 @@
       "#d97706","#059669","#dc2626","#7c3aed"
     ];
 
-    /* ── State ──
-       items は { label: string, visible: boolean }[] の形式で管理 */
     let items    = defaultItems.map(l => ({ label: l, visible: true }));
     let rotation = 0;
     let spinning = false;
     let spinRaf  = null;
     let revealTimer = 0;
-
     let roulettes = [];
     let activeId  = null;
 
-    /* ── ヘルパー: visibleなitemsのlabelのみ ── */
     function visibleLabels() {
       return items.filter(i => i.visible).map(i => i.label);
     }
 
-    /* ── Firebase ── */
+    /* ── Firebase: デバイスIDのパスに保存 ── */
     function saveToFirebase() {
-      set(dbRef, { roulettes, activeId })
-        .then(() => setSaveStatus("クラウドに保存しました ✓"))
-        .catch(e => setSaveStatus("⚠ 保存に失敗しました: " + e.message));
+      set(getDeviceRef(deviceId), { roulettes, activeId })
+        .then(() => setSaveStatus("保存しました ✓"))
+        .catch(e => setSaveStatus("⚠ 保存に失敗: " + e.message));
     }
 
-    function initFirebaseSync() {
-      onValue(dbRef, (snapshot) => {
+    function initFirebaseSync(id) {
+      /* 旧リスナーを解除 */
+      if (activeDbRef && activeListener) {
+        off(activeDbRef, "value", activeListener);
+      }
+      activeDbRef = getDeviceRef(id);
+      activeListener = onValue(activeDbRef, (snapshot) => {
         const data = snapshot.val();
         if (data && Array.isArray(data.roulettes) && data.roulettes.length > 0) {
           roulettes = data.roulettes;
           activeId  = data.activeId || roulettes[0].id;
           if (!roulettes.find(r => r.id === activeId)) activeId = roulettes[0].id;
         } else {
-          /* 初回: デフォルト + 1-20 の2つを作成 */
-          const idDef  = genId();
+          const idDef   = genId();
           const id1to20 = genId();
           roulettes = [
             { id: idDef,   name: "デフォルト", items: defaultItems.map(l => ({ label: l, visible: true })) },
@@ -612,7 +703,6 @@
           activeId = idDef;
           saveToFirebase();
         }
-        /* 旧データ（string[]）を新形式に変換 */
         roulettes = roulettes.map(r => ({
           ...r,
           items: r.items.map(i =>
@@ -621,7 +711,7 @@
         }));
         loadActiveRoulette();
         renderRouletteControls();
-        setSaveStatus("クラウドと同期中");
+        setSaveStatus("同期完了 ✓");
       });
     }
 
@@ -654,7 +744,6 @@
 
     function setSaveStatus(msg) { saveStatus.textContent = msg; }
 
-    /* ── Roulette list management ── */
     function renderRouletteControls() {
       rouletteSelect.innerHTML = "";
       roulettes.forEach(r => {
@@ -682,6 +771,20 @@
       activeId = roulettes[0].id;
       saveToFirebase();
     }
+
+    /* ── デバイスID変更 ── */
+    deviceIdApply.addEventListener("click", () => {
+      const newId = deviceIdInput.value.trim();
+      if (!newId || newId === deviceId) return;
+      deviceId = newId;
+      localStorage.setItem("roulette_device_id", newId);
+      resultText.textContent = "まだ回していません";
+      rotation = 0;
+      canvas.style.transform = "rotate(0deg)";
+      hideResultOverlay();
+      setSaveStatus("デバイスIDを変更しました。接続中...");
+      initFirebaseSync(deviceId);
+    });
 
     /* ── Sound ── */
     let soundEnabled = true;
@@ -855,7 +958,6 @@
 
         const swatch = document.createElement("span");
         swatch.className = "swatch";
-        /* 非表示の場合は色をグレーに */
         const visIdx = items.slice(0, index).filter(i => i.visible).length;
         swatch.style.background = item.visible
           ? colors[visIdx % colors.length]
@@ -872,7 +974,6 @@
           queueSave();
         });
 
-        /* 表示/非表示トグルボタン */
         const toggleVis = document.createElement("button");
         toggleVis.className = "toggle-vis";
         toggleVis.type = "button";
@@ -917,13 +1018,11 @@
         .map(i => i.slice(0, 40));
     }
 
-    /* ── Sync helpers ── */
     let bulkFocused = false;
     bulkItems.addEventListener("focus", () => { bulkFocused = true; });
     bulkItems.addEventListener("blur",  () => { bulkFocused = false; syncBulkInput(); });
 
     function syncBulkInput() {
-      /* テキストエリアにはすべてのラベルを表示（非表示含む） */
       if (!bulkFocused) bulkItems.value = items.map(i => i.label).join("\n");
     }
 
@@ -1021,14 +1120,12 @@
 
     function showResultOverlay(value) {
       bigResultText.textContent = value;
-      /* 「非表示にする」ボタンのラベルをリセット */
       overlayHideBtn.textContent = "非表示にする";
       overlayHideBtn.disabled = false;
       resultOverlay.classList.add("is-visible");
       document.body.classList.add("result-open");
     }
 
-    /* 「非表示にする」: 結果の候補をvisible=falseにしてオーバーレイを閉じる */
     overlayHideBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       const resultLabel = bigResultText.textContent;
@@ -1043,7 +1140,6 @@
       hideResultOverlay();
     });
 
-    /* 「閉じる」: そのまま閉じるだけ */
     overlayCloseBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       hideResultOverlay();
@@ -1052,7 +1148,6 @@
     /* ── Event listeners ── */
     bulkItems.addEventListener("input", () => {
       const newLabels = getItemsFromText(bulkItems.value);
-      /* visibilityを既存ラベルから引き継ぐ */
       const oldMap = new Map(items.map(i => [i.label, i.visible]));
       items = newLabels.map(l => ({ label: l, visible: oldMap.has(l) ? oldMap.get(l) : true }));
       resultText.textContent = "まだ回していません";
@@ -1102,7 +1197,8 @@
     });
 
     /* ── Init ── */
-    initFirebaseSync();
+    setSaveStatus("接続中...");
+    initFirebaseSync(deviceId);
   </script>
 </body>
 </html>
