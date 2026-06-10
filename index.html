@@ -214,7 +214,6 @@
       min-height: 18px;
     }
 
-    /* Device ID area */
     .device-id-area {
       display: grid;
       gap: 6px;
@@ -600,7 +599,6 @@
     const firebaseApp = initializeApp(firebaseConfig);
     const db = getDatabase(firebaseApp);
 
-    /* ── Device ID: localStorageで管理 ── */
     function genDeviceId() {
       return "dev_" + Date.now().toString(36) + Math.random().toString(36).slice(2, 9);
     }
@@ -616,7 +614,6 @@
 
     let deviceId = loadDeviceId();
 
-    /* ── Firebaseパスはデバイスごとに分離 ── */
     let activeDbRef = null;
     let activeListener = null;
 
@@ -624,7 +621,6 @@
       return ref(db, "roulette_data/" + id);
     }
 
-    /* ── DOM refs ── */
     const canvas               = document.getElementById("wheel");
     const ctx                  = canvas.getContext("2d");
     const pointer              = document.getElementById("pointer");
@@ -674,7 +670,6 @@
       return items.filter(i => i.visible).map(i => i.label);
     }
 
-    /* ── Firebase: デバイスIDのパスに保存 ── */
     function saveToFirebase() {
       set(getDeviceRef(deviceId), { roulettes, activeId })
         .then(() => setSaveStatus("保存しました ✓"))
@@ -682,7 +677,6 @@
     }
 
     function initFirebaseSync(id) {
-      /* 旧リスナーを解除 */
       if (activeDbRef && activeListener) {
         off(activeDbRef, "value", activeListener);
       }
@@ -772,7 +766,6 @@
       saveToFirebase();
     }
 
-    /* ── デバイスID変更 ── */
     deviceIdApply.addEventListener("click", () => {
       const newId = deviceIdInput.value.trim();
       if (!newId || newId === deviceId) return;
@@ -790,6 +783,21 @@
     let soundEnabled = true;
     let audioCtx = null;
 
+    // ── 効果音: 1秒間に最大6回に制限するレートリミッター ──
+    const TICK_MAX_PER_SEC = 6;
+    const tickTimestamps = [];
+
+    function canPlayTick() {
+      const now = performance.now();
+      // 1秒より古いタイムスタンプを削除
+      while (tickTimestamps.length > 0 && now - tickTimestamps[0] > 1000) {
+        tickTimestamps.shift();
+      }
+      if (tickTimestamps.length >= TICK_MAX_PER_SEC) return false;
+      tickTimestamps.push(now);
+      return true;
+    }
+
     function getAudioCtx() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       return audioCtx;
@@ -797,6 +805,7 @@
 
     function playTick(intensity = 1) {
       if (!soundEnabled) return;
+      if (!canPlayTick()) return;  // ← 6回/秒を超えたらスキップ
       try {
         const ac = getAudioCtx();
         const osc  = ac.createOscillator();
@@ -1037,6 +1046,9 @@
       resultText.textContent = "回転中...";
       if (spinRaf) cancelAnimationFrame(spinRaf);
 
+      // 50%の確率でオーバーシュート演出を使う
+      const useOvershoot = Math.random() < 0.5;
+
       const selected        = Math.floor(Math.random() * vl.length);
       const sliceDeg        = 360 / vl.length;
       const selectedCenter  = selected * sliceDeg + sliceDeg / 2;
@@ -1047,68 +1059,169 @@
       const constDeg      = speed * constDuration;
       const afterConst    = rotation + constDeg;
 
-      const decelDuration = 4000;
-      const totalDuration = constDuration + decelDuration;
+      if (!useOvershoot) {
+        // ── 通常スピン（元のロジック）──
+        const decelDuration = 4000;
+        const totalDuration = constDuration + decelDuration;
 
-      const currentMod = afterConst % 360;
-      let extraDeg = (targetAtPointer - currentMod + 360) % 360;
-      extraDeg += 360 * Math.ceil(Math.max(1, (speed * decelDuration * 0.5 - extraDeg) / 360));
+        const currentMod = afterConst % 360;
+        let extraDeg = (targetAtPointer - currentMod + 360) % 360;
+        extraDeg += 360 * Math.ceil(Math.max(1, (speed * decelDuration * 0.5 - extraDeg) / 360));
 
-      const decelStartRot = afterConst;
-      const decelEndRot   = afterConst + extraDeg;
-      const m0 = speed * decelDuration;
+        const decelStartRot = afterConst;
+        const decelEndRot   = afterConst + extraDeg;
+        const m0 = speed * decelDuration;
 
-      function hermiteDecel(t) {
-        const t2 = t * t, t3 = t2 * t;
-        return (t3 - 2*t2 + t) * m0 + (-2*t3 + 3*t2) * extraDeg;
+        function hermiteDecel(t) {
+          const t2 = t * t, t3 = t2 * t;
+          return (t3 - 2*t2 + t) * m0 + (-2*t3 + 3*t2) * extraDeg;
+        }
+
+        const startTime = performance.now();
+        let lastAngle   = rotation % 360;
+
+        function loop(now) {
+          const elapsed = now - startTime;
+          let currentRot;
+
+          if (elapsed < constDuration) {
+            currentRot = rotation + speed * elapsed;
+          } else if (elapsed < totalDuration) {
+            const t    = (elapsed - constDuration) / decelDuration;
+            currentRot = decelStartRot + hermiteDecel(Math.min(t, 1));
+          } else {
+            currentRot = decelEndRot;
+          }
+
+          canvas.style.transition = "none";
+          canvas.style.transform  = `rotate(${currentRot}deg)`;
+
+          const currentAngle = ((currentRot % 360) + 360) % 360;
+          const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
+          const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+          if (currIdx !== prevIdx) {
+            const intensity = elapsed < constDuration
+              ? 1.0
+              : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration);
+            playTick(intensity);
+            pointer.classList.add("tick");
+            setTimeout(() => pointer.classList.remove("tick"), 50);
+          }
+          lastAngle = currentAngle;
+
+          if (elapsed < totalDuration) {
+            spinRaf = requestAnimationFrame(loop);
+          } else {
+            rotation = decelEndRot;
+            spinning = false;
+            resultText.textContent = vl[selected];
+            renderItems();
+            playFanfare();
+            launchConfetti();
+            showResultOverlay(vl[selected]);
+          }
+        }
+
+        spinRaf = requestAnimationFrame(loop);
+
+      } else {
+        // ── オーバーシュートスピン ──
+        // 目標を1〜3スロット分通り越してから逆戻り
+        const overshootSlots  = 1 + Math.floor(Math.random() * 3); // 1〜3スロット
+        const overshootOffset = overshootSlots * sliceDeg;
+
+        // フェーズ1: 通常減速して「目標＋オーバーシュート分」で止まる
+        const decelDuration1 = 3500;
+        const totalDuration1 = constDuration + decelDuration1;
+
+        // オーバーシュート先の角度
+        const overshootTarget = (targetAtPointer - overshootOffset + 360) % 360;
+
+        const currentMod1 = afterConst % 360;
+        let extraDeg1 = (overshootTarget - currentMod1 + 360) % 360;
+        extraDeg1 += 360 * Math.ceil(Math.max(1, (speed * decelDuration1 * 0.5 - extraDeg1) / 360));
+
+        const decelStartRot1 = afterConst;
+        const decelEndRot1   = afterConst + extraDeg1;
+        const m0_1 = speed * decelDuration1;
+
+        function hermiteDecel1(t) {
+          const t2 = t * t, t3 = t2 * t;
+          return (t3 - 2*t2 + t) * m0_1 + (-2*t3 + 3*t2) * extraDeg1;
+        }
+
+        // フェーズ2: 逆回転して本来の目標へ
+        const reverseDuration = 1200 + overshootSlots * 200;
+        const reverseBackDeg  = overshootOffset; // 逆方向に戻す量（正方向での距離）
+
+        // Hermite補間で逆戻り（負方向）
+        function hermiteReverse(t) {
+          const t2 = t * t, t3 = t2 * t;
+          // 逆なので -reverseBackDeg に向かう
+          const disp = -reverseBackDeg;
+          return (t3 - 2*t2 + t) * 0 + (-2*t3 + 3*t2) * disp;
+        }
+
+        const startTime = performance.now();
+        let lastAngle   = rotation % 360;
+        let phase2Start = null;
+
+        function loop(now) {
+          const elapsed = now - startTime;
+          let currentRot;
+
+          if (elapsed < constDuration) {
+            // 等速フェーズ
+            currentRot = rotation + speed * elapsed;
+          } else if (elapsed < totalDuration1) {
+            // 減速してオーバーシュート先へ
+            const t = (elapsed - constDuration) / decelDuration1;
+            currentRot = decelStartRot1 + hermiteDecel1(Math.min(t, 1));
+          } else {
+            // フェーズ2: 逆回転
+            if (phase2Start === null) phase2Start = now;
+            const t2 = Math.min((now - phase2Start) / reverseDuration, 1);
+            currentRot = decelEndRot1 + hermiteReverse(t2);
+          }
+
+          canvas.style.transition = "none";
+          canvas.style.transform  = `rotate(${currentRot}deg)`;
+
+          const currentAngle = ((currentRot % 360) + 360) % 360;
+          const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
+          const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+          if (currIdx !== prevIdx) {
+            const intensity = elapsed < constDuration
+              ? 1.0
+              : phase2Start !== null
+                ? 0.3  // 逆戻り中は小さめ
+                : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration1);
+            playTick(intensity);
+            pointer.classList.add("tick");
+            setTimeout(() => pointer.classList.remove("tick"), 50);
+          }
+          lastAngle = currentAngle;
+
+          const done = phase2Start !== null && (now - phase2Start) >= reverseDuration;
+
+          if (!done) {
+            spinRaf = requestAnimationFrame(loop);
+          } else {
+            // 最終位置を正確に合わせる
+            const finalRot = decelEndRot1 - reverseBackDeg;
+            canvas.style.transform = `rotate(${finalRot}deg)`;
+            rotation = finalRot;
+            spinning = false;
+            resultText.textContent = vl[selected];
+            renderItems();
+            playFanfare();
+            launchConfetti();
+            showResultOverlay(vl[selected]);
+          }
+        }
+
+        spinRaf = requestAnimationFrame(loop);
       }
-
-      const startTime = performance.now();
-      let lastAngle   = rotation % 360;
-
-      function loop(now) {
-        const elapsed = now - startTime;
-        let currentRot;
-
-        if (elapsed < constDuration) {
-          currentRot = rotation + speed * elapsed;
-        } else if (elapsed < totalDuration) {
-          const t    = (elapsed - constDuration) / decelDuration;
-          currentRot = decelStartRot + hermiteDecel(Math.min(t, 1));
-        } else {
-          currentRot = decelEndRot;
-        }
-
-        canvas.style.transition = "none";
-        canvas.style.transform  = `rotate(${currentRot}deg)`;
-
-        const currentAngle = ((currentRot % 360) + 360) % 360;
-        const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
-        const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
-        if (currIdx !== prevIdx) {
-          const intensity = elapsed < constDuration
-            ? 1.0
-            : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration);
-          playTick(intensity);
-          pointer.classList.add("tick");
-          setTimeout(() => pointer.classList.remove("tick"), 50);
-        }
-        lastAngle = currentAngle;
-
-        if (elapsed < totalDuration) {
-          spinRaf = requestAnimationFrame(loop);
-        } else {
-          rotation = decelEndRot;
-          spinning = false;
-          resultText.textContent = vl[selected];
-          renderItems();
-          playFanfare();
-          launchConfetti();
-          showResultOverlay(vl[selected]);
-        }
-      }
-
-      spinRaf = requestAnimationFrame(loop);
     }
 
     /* ── Overlay ── */
