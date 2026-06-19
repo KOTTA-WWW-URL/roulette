@@ -783,13 +783,11 @@
     let soundEnabled = true;
     let audioCtx = null;
 
-    // ── 効果音: 1秒間に最大12回に制限するレートリミッター（高速回転に対応） ──
     const TICK_MAX_PER_SEC = 12;
     const tickTimestamps = [];
 
     function canPlayTick() {
       const now = performance.now();
-      // 1秒より古いタイムスタンプを削除
       while (tickTimestamps.length > 0 && now - tickTimestamps[0] > 1000) {
         tickTimestamps.shift();
       }
@@ -917,6 +915,7 @@
       const slice = (Math.PI * 2) / visLabels.length;
 
       visLabels.forEach((label, index) => {
+        // drawWheelでは真上(-PI/2)を開始点として描画
         const start = index * slice - Math.PI / 2;
         const end   = start + slice;
         ctx.beginPath();
@@ -1045,13 +1044,16 @@
       resultText.textContent = "回転中...";
       if (spinRaf) cancelAnimationFrame(spinRaf);
 
-      // 50%の確率でオーバーシュート演出を使う
       const useOvershoot = Math.random() < 0.5;
 
       const selected        = Math.floor(Math.random() * vl.length);
       const sliceDeg        = 360 / vl.length;
-      const selectedCenter  = selected * sliceDeg + sliceDeg / 2;
-      const targetAtPointer = 360 - selectedCenter;
+      
+      // ターゲットインデックスがポインター（真上）に来るための回転角度を計算
+      // 描画が真上から始まっているため、インデックスiのセクションの中心は (i + 0.5) * sliceDeg
+      // これを真上(0度)に持ってくるには、全体を -(i + 0.5) * sliceDeg 回転させる必要がある
+      // 正の値にするため 360 - ... とする
+      const targetAtPointer = (360 - (selected + 0.5) * sliceDeg) % 360;
 
       const constDuration = 3000 + Math.random() * 2000;
       const speed         = 1.5;
@@ -1065,6 +1067,7 @@
 
         const currentMod = afterConst % 360;
         let extraDeg = (targetAtPointer - currentMod + 360) % 360;
+        // 最低限の回転数を確保
         extraDeg += 360 * Math.ceil(Math.max(1, (speed * decelDuration * 0.5 - extraDeg) / 360));
 
         const decelStartRot = afterConst;
@@ -1097,13 +1100,11 @@
 
           const currentAngle = ((currentRot % 360) + 360) % 360;
           
-          // ── 境目の判定 ──
-          // ポインター(真上=0度)に対するルーレットの角度を計算
-          // ルーレットが時計回りに回っているとき、ポインターはルーレット上の反時計回りに進む
+          // 効果音判定: ルーレットの角度から現在のポインター位置のインデックスを計算
+          // ポインターは真上(0度)固定。ルーレットの角度がRのとき、ルーレット上の角度 -R が真上に来る
           const roulettePos = (360 - currentAngle) % 360;
           const lastRoulettePos = (360 - lastAngle) % 360;
           
-          // どのセクションの境界を通過したかを判定
           const currIdx = Math.floor(roulettePos / sliceDeg);
           const prevIdx = Math.floor(lastRoulettePos / sliceDeg);
           
@@ -1129,7 +1130,6 @@
             showResultOverlay(vl[selected]);
           }
         }
-
         spinRaf = requestAnimationFrame(loop);
 
       } else {
@@ -1139,7 +1139,9 @@
 
         const decelDuration1 = 3500;
         const totalDuration1 = constDuration + decelDuration1;
-        const overshootTarget = (targetAtPointer - overshootOffset + 360) % 360;
+        
+        // オーバーシュート先のターゲット角度（時計回りに通り過ぎる）
+        const overshootTarget = (targetAtPointer + overshootOffset) % 360;
 
         const currentMod1 = afterConst % 360;
         let extraDeg1 = (overshootTarget - currentMod1 + 360) % 360;
@@ -1159,7 +1161,7 @@
 
         function hermiteReverse(t) {
           const t2 = t * t, t3 = t2 * t;
-          const disp = -reverseBackDeg;
+          const disp = -reverseBackDeg; // 逆回転
           return (t3 - 2*t2 + t) * 0 + (-2*t3 + 3*t2) * disp;
         }
 
@@ -1186,8 +1188,6 @@
           canvas.style.transform  = `rotate(${currentRot}deg)`;
 
           const currentAngle = ((currentRot % 360) + 360) % 360;
-          
-          // ── 境目の判定 ──
           const roulettePos = (360 - currentAngle) % 360;
           const lastRoulettePos = (360 - lastAngle) % 360;
           
@@ -1222,7 +1222,6 @@
             showResultOverlay(vl[selected]);
           }
         }
-
         spinRaf = requestAnimationFrame(loop);
       }
     }
