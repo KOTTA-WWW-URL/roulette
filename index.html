@@ -783,8 +783,8 @@
     let soundEnabled = true;
     let audioCtx = null;
 
-    // ── 効果音: 1秒間に最大6回に制限するレートリミッター ──
-    const TICK_MAX_PER_SEC = 6;
+    // ── 効果音: 1秒間に最大12回に制限するレートリミッター（高速回転に対応） ──
+    const TICK_MAX_PER_SEC = 12;
     const tickTimestamps = [];
 
     function canPlayTick() {
@@ -805,7 +805,7 @@
 
     function playTick(intensity = 1) {
       if (!soundEnabled) return;
-      if (!canPlayTick()) return;  // ← 6回/秒を超えたらスキップ
+      if (!canPlayTick()) return;
       try {
         const ac = getAudioCtx();
         const osc  = ac.createOscillator();
@@ -881,7 +881,6 @@
         if (p.life > 0 && p.y < confettiCanvas.height + 20) {
           alive = true;
           confettiCtx.save();
-          confettiCtx.globalAlpha = Math.max(0, p.life);
           confettiCtx.translate(p.x, p.y);
           confettiCtx.rotate(p.rot * Math.PI / 180);
           confettiCtx.fillStyle = p.color;
@@ -1060,7 +1059,7 @@
       const afterConst    = rotation + constDeg;
 
       if (!useOvershoot) {
-        // ── 通常スピン（元のロジック）──
+        // ── 通常スピン ──
         const decelDuration = 4000;
         const totalDuration = constDuration + decelDuration;
 
@@ -1097,8 +1096,17 @@
           canvas.style.transform  = `rotate(${currentRot}deg)`;
 
           const currentAngle = ((currentRot % 360) + 360) % 360;
-          const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
-          const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+          
+          // ── 境目の判定 ──
+          // ポインター(真上=0度)に対するルーレットの角度を計算
+          // ルーレットが時計回りに回っているとき、ポインターはルーレット上の反時計回りに進む
+          const roulettePos = (360 - currentAngle) % 360;
+          const lastRoulettePos = (360 - lastAngle) % 360;
+          
+          // どのセクションの境界を通過したかを判定
+          const currIdx = Math.floor(roulettePos / sliceDeg);
+          const prevIdx = Math.floor(lastRoulettePos / sliceDeg);
+          
           if (currIdx !== prevIdx) {
             const intensity = elapsed < constDuration
               ? 1.0
@@ -1126,15 +1134,11 @@
 
       } else {
         // ── オーバーシュートスピン ──
-        // 目標を1〜3スロット分通り越してから逆戻り
-        const overshootSlots  = 1 + Math.floor(Math.random() * 3); // 1〜3スロット
+        const overshootSlots  = 1 + Math.floor(Math.random() * 3);
         const overshootOffset = overshootSlots * sliceDeg;
 
-        // フェーズ1: 通常減速して「目標＋オーバーシュート分」で止まる
         const decelDuration1 = 3500;
         const totalDuration1 = constDuration + decelDuration1;
-
-        // オーバーシュート先の角度
         const overshootTarget = (targetAtPointer - overshootOffset + 360) % 360;
 
         const currentMod1 = afterConst % 360;
@@ -1150,14 +1154,11 @@
           return (t3 - 2*t2 + t) * m0_1 + (-2*t3 + 3*t2) * extraDeg1;
         }
 
-        // フェーズ2: 逆回転して本来の目標へ
         const reverseDuration = 1200 + overshootSlots * 200;
-        const reverseBackDeg  = overshootOffset; // 逆方向に戻す量（正方向での距離）
+        const reverseBackDeg  = overshootOffset;
 
-        // Hermite補間で逆戻り（負方向）
         function hermiteReverse(t) {
           const t2 = t * t, t3 = t2 * t;
-          // 逆なので -reverseBackDeg に向かう
           const disp = -reverseBackDeg;
           return (t3 - 2*t2 + t) * 0 + (-2*t3 + 3*t2) * disp;
         }
@@ -1171,14 +1172,11 @@
           let currentRot;
 
           if (elapsed < constDuration) {
-            // 等速フェーズ
             currentRot = rotation + speed * elapsed;
           } else if (elapsed < totalDuration1) {
-            // 減速してオーバーシュート先へ
             const t = (elapsed - constDuration) / decelDuration1;
             currentRot = decelStartRot1 + hermiteDecel1(Math.min(t, 1));
           } else {
-            // フェーズ2: 逆回転
             if (phase2Start === null) phase2Start = now;
             const t2 = Math.min((now - phase2Start) / reverseDuration, 1);
             currentRot = decelEndRot1 + hermiteReverse(t2);
@@ -1188,13 +1186,19 @@
           canvas.style.transform  = `rotate(${currentRot}deg)`;
 
           const currentAngle = ((currentRot % 360) + 360) % 360;
-          const prevIdx = Math.floor(((360 - lastAngle + 360) % 360) / sliceDeg);
-          const currIdx = Math.floor(((360 - currentAngle + 360) % 360) / sliceDeg);
+          
+          // ── 境目の判定 ──
+          const roulettePos = (360 - currentAngle) % 360;
+          const lastRoulettePos = (360 - lastAngle) % 360;
+          
+          const currIdx = Math.floor(roulettePos / sliceDeg);
+          const prevIdx = Math.floor(lastRoulettePos / sliceDeg);
+          
           if (currIdx !== prevIdx) {
             const intensity = elapsed < constDuration
               ? 1.0
               : phase2Start !== null
-                ? 0.3  // 逆戻り中は小さめ
+                ? 0.3
                 : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration1);
             playTick(intensity);
             pointer.classList.add("tick");
@@ -1207,7 +1211,6 @@
           if (!done) {
             spinRaf = requestAnimationFrame(loop);
           } else {
-            // 最終位置を正確に合わせる
             const finalRot = decelEndRot1 - reverseBackDeg;
             canvas.style.transform = `rotate(${finalRot}deg)`;
             rotation = finalRot;
@@ -1286,31 +1289,27 @@
       rotation = 0;
       canvas.style.transform = "rotate(0deg)";
       loadActiveRoulette();
-      setSaveStatus("切り替えました。");
-      saveToFirebase();
+      setSaveStatus("ルーレットを切り替えました");
     });
 
     shuffleButton.addEventListener("click", () => {
-      items = items.map(v => ({ ...v, s: Math.random() })).sort((a, b) => a.s - b.s).map(({ label, visible }) => ({ label, visible }));
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [items[i], items[j]] = [items[j], items[i]];
+      }
       syncBulkInput();
       render();
       queueSave();
     });
 
     resetButton.addEventListener("click", () => {
+      if (!confirm("候補をリセットしてもよろしいですか？")) return;
       items = defaultItems.map(l => ({ label: l, visible: true }));
-      resultText.textContent = "まだ回していません";
-      rotation = 0;
-      canvas.style.transition = "none";
-      canvas.style.transform  = "rotate(0deg)";
-      hideResultOverlay();
       syncBulkInput();
       render();
       queueSave();
     });
 
-    /* ── Init ── */
-    setSaveStatus("接続中...");
     initFirebaseSync(deviceId);
   </script>
 </body>
