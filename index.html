@@ -783,19 +783,6 @@
     let soundEnabled = true;
     let audioCtx = null;
 
-    const TICK_MAX_PER_SEC = 12;
-    const tickTimestamps = [];
-
-    function canPlayTick() {
-      const now = performance.now();
-      while (tickTimestamps.length > 0 && now - tickTimestamps[0] > 1000) {
-        tickTimestamps.shift();
-      }
-      if (tickTimestamps.length >= TICK_MAX_PER_SEC) return false;
-      tickTimestamps.push(now);
-      return true;
-    }
-
     function getAudioCtx() {
       if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       return audioCtx;
@@ -803,7 +790,6 @@
 
     function playTick(intensity = 1) {
       if (!soundEnabled) return;
-      if (!canPlayTick()) return;
       try {
         const ac = getAudioCtx();
         const osc  = ac.createOscillator();
