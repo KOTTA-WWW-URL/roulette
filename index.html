@@ -67,34 +67,12 @@
       line-height: 1.7;
     }
 
-    .mode-switch {
-      display: flex;
-      gap: 8px;
-    }
-
-    .mode-btn {
-      border: 1px solid var(--line);
-      border-radius: 8px;
-      background: #fff;
-      color: var(--muted);
-      padding: 9px 18px;
-      font-weight: 800;
-      cursor: pointer;
-      transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
-    }
-
-    .mode-btn:hover:not(.active) { background: #f3f6fb; color: var(--ink); }
-
-    .mode-btn.active {
-      background: var(--accent);
-      border-color: var(--accent);
-      color: #fff;
-    }
-
-    .visual-stage {
+    .wheel-wrap {
       position: relative;
       width: min(560px, 88vw);
       aspect-ratio: 1;
+      display: grid;
+      place-items: center;
     }
 
     canvas {
@@ -120,13 +98,6 @@
 
     .pointer.tick { transform: translateX(-50%) scaleY(1.18) translateY(-3px); }
 
-    .wheel-wrap {
-      position: absolute;
-      inset: 0;
-      display: grid;
-      place-items: center;
-    }
-
     .hub {
       position: absolute;
       width: 86px;
@@ -148,106 +119,6 @@
 
     .hub:hover { transform: scale(1.05); }
     .hub:disabled { cursor: not-allowed; opacity: 0.62; transform: none; }
-
-    .mode-hidden { display: none !important; }
-
-    .lottery-wrap {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: flex-end;
-      padding-bottom: 8%;
-    }
-
-    .lottery-box {
-      position: relative;
-      width: 68%;
-      max-width: 320px;
-      height: 40%;
-      background: linear-gradient(165deg, #cda06a, #a97a45 55%, #86602f);
-      border-radius: 18px 18px 28px 28px;
-      box-shadow: var(--shadow);
-    }
-
-    .lottery-box::before {
-      content: "";
-      position: absolute;
-      inset: 10px 10px auto 10px;
-      top: 10px;
-      bottom: 14px;
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 10px 10px 20px 20px;
-      pointer-events: none;
-    }
-
-    .lottery-slit {
-      position: absolute;
-      top: -7px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 72%;
-      height: 16px;
-      border-radius: 50%;
-      background: linear-gradient(#241408, #4a2f16);
-      box-shadow: inset 0 4px 6px rgba(0,0,0,0.55);
-      z-index: 1;
-    }
-
-    .lottery-papers {
-      position: absolute;
-      left: 6%;
-      right: 6%;
-      top: -6px;
-      height: 0;
-      z-index: 2;
-    }
-
-    .lottery-paper {
-      position: absolute;
-      bottom: 0;
-      width: 24px;
-      background: linear-gradient(#fdfbf5, #efe7d6);
-      border: 1px solid rgba(23,32,51,0.14);
-      border-radius: 4px 4px 1px 1px;
-      box-shadow: 0 4px 8px rgba(23,32,51,0.22);
-      cursor: pointer;
-      transition: transform 0.5s cubic-bezier(0.2,0.8,0.2,1), box-shadow 0.3s ease;
-    }
-
-    .lottery-paper:hover { box-shadow: 0 6px 12px rgba(23,32,51,0.3); }
-
-    .lottery-paper.drawn {
-      cursor: default;
-      z-index: 5;
-      box-shadow: 0 14px 26px rgba(23,32,51,0.32);
-    }
-
-    .lottery-paper-text {
-      position: absolute;
-      top: 10px;
-      left: 2px;
-      right: 2px;
-      text-align: center;
-      font-size: 10px;
-      font-weight: 800;
-      color: var(--ink);
-      line-height: 1.25;
-      overflow-wrap: anywhere;
-      opacity: 0;
-      transition: opacity 0.3s ease 0.35s;
-    }
-
-    .lottery-paper.drawn .lottery-paper-text { opacity: 1; }
-
-    .lottery-hint {
-      margin-top: 16px;
-      color: var(--muted);
-      font-weight: 700;
-      font-size: 0.9rem;
-      text-align: center;
-    }
 
     .result {
       min-height: 76px;
@@ -650,27 +521,10 @@
         <p>迷ったときに、候補を入れて回すだけ。会議、献立、順番決め、今日やることに使えます。</p>
       </div>
 
-      <div class="mode-switch" id="modeSwitch" role="group" aria-label="表示モード">
-        <button class="mode-btn active" id="modeWheelBtn" type="button" data-mode="wheel">🎡 ルーレット</button>
-        <button class="mode-btn" id="modeLotteryBtn" type="button" data-mode="lottery">🎫 抽選</button>
-      </div>
-
-      <div class="visual-stage" id="visualStage">
+      <div class="wheel-wrap">
         <div class="pointer" id="pointer" aria-hidden="true"></div>
-
-        <div class="wheel-wrap" id="wheelWrap">
-          <canvas id="wheel" width="900" height="900" aria-label="候補のルーレット"></canvas>
-          <button class="hub" id="hubSpin" type="button" aria-label="ルーレットを回す">SPIN</button>
-        </div>
-
-        <div class="lottery-wrap mode-hidden" id="lotteryWrap">
-          <div class="lottery-box">
-            <div class="lottery-slit"></div>
-            <div class="lottery-papers" id="lotteryPapers"></div>
-          </div>
-          <div class="lottery-hint" id="lotteryHint">紙を引いてください</div>
-        </div>
-
+        <canvas id="wheel" width="900" height="900" aria-label="候補のルーレット"></canvas>
+        <button class="hub" id="hubSpin" type="button" aria-label="ルーレットを回す">SPIN</button>
         <button class="sound-toggle" id="soundToggle" type="button" title="効果音のオン/オフ">🔊</button>
       </div>
 
@@ -769,34 +623,28 @@
 
     const canvas               = document.getElementById("wheel");
     const ctx                  = canvas.getContext("2d");
-    const pointer               = document.getElementById("pointer");
-    const itemsEl               = document.getElementById("items");
-    const resultText            = document.getElementById("resultText");
-    const spinButton            = document.getElementById("spinButton");
-    const hubSpin                = document.getElementById("hubSpin");
-    const resultOverlay          = document.getElementById("resultOverlay");
-    const bigResultText          = document.getElementById("bigResultText");
-    const overlayHideBtn         = document.getElementById("overlayHideBtn");
-    const overlayCloseBtn        = document.getElementById("overlayCloseBtn");
-    const bulkItems              = document.getElementById("bulkItems");
-    const shuffleButton          = document.getElementById("shuffleButton");
-    const resetButton            = document.getElementById("resetButton");
-    const rouletteSelect         = document.getElementById("rouletteSelect");
-    const newRouletteName        = document.getElementById("newRouletteName");
-    const createRouletteButton   = document.getElementById("createRouletteButton");
-    const deleteRouletteButton   = document.getElementById("deleteRouletteButton");
-    const saveStatus             = document.getElementById("saveStatus");
-    const soundToggle            = document.getElementById("soundToggle");
-    const confettiCanvas         = document.getElementById("confettiCanvas");
-    const confettiCtx            = confettiCanvas.getContext("2d");
-    const deviceIdInput          = document.getElementById("deviceIdInput");
-    const deviceIdApply          = document.getElementById("deviceIdApply");
-    const modeWheelBtn           = document.getElementById("modeWheelBtn");
-    const modeLotteryBtn         = document.getElementById("modeLotteryBtn");
-    const wheelWrap               = document.getElementById("wheelWrap");
-    const lotteryWrap             = document.getElementById("lotteryWrap");
-    const lotteryPapers           = document.getElementById("lotteryPapers");
-    const lotteryHint             = document.getElementById("lotteryHint");
+    const pointer              = document.getElementById("pointer");
+    const itemsEl              = document.getElementById("items");
+    const resultText           = document.getElementById("resultText");
+    const spinButton           = document.getElementById("spinButton");
+    const hubSpin              = document.getElementById("hubSpin");
+    const resultOverlay        = document.getElementById("resultOverlay");
+    const bigResultText        = document.getElementById("bigResultText");
+    const overlayHideBtn       = document.getElementById("overlayHideBtn");
+    const overlayCloseBtn      = document.getElementById("overlayCloseBtn");
+    const bulkItems            = document.getElementById("bulkItems");
+    const shuffleButton        = document.getElementById("shuffleButton");
+    const resetButton          = document.getElementById("resetButton");
+    const rouletteSelect       = document.getElementById("rouletteSelect");
+    const newRouletteName      = document.getElementById("newRouletteName");
+    const createRouletteButton = document.getElementById("createRouletteButton");
+    const deleteRouletteButton = document.getElementById("deleteRouletteButton");
+    const saveStatus           = document.getElementById("saveStatus");
+    const soundToggle          = document.getElementById("soundToggle");
+    const confettiCanvas       = document.getElementById("confettiCanvas");
+    const confettiCtx          = confettiCanvas.getContext("2d");
+    const deviceIdInput        = document.getElementById("deviceIdInput");
+    const deviceIdApply        = document.getElementById("deviceIdApply");
 
     deviceIdInput.value = deviceId;
 
@@ -817,7 +665,6 @@
     let revealTimer = 0;
     let roulettes = [];
     let activeId  = null;
-    let mode      = "wheel"; // "wheel" | "lottery"
 
     function visibleLabels() {
       return items.filter(i => i.visible).map(i => i.label);
@@ -924,30 +771,13 @@
       if (!newId || newId === deviceId) return;
       deviceId = newId;
       localStorage.setItem("roulette_device_id", newId);
-      resultText.textContent = mode === "wheel" ? "まだ回していません" : "まだ引いていません";
+      resultText.textContent = "まだ回していません";
       rotation = 0;
       canvas.style.transform = "rotate(0deg)";
       hideResultOverlay();
       setSaveStatus("デバイスIDを変更しました。接続中...");
       initFirebaseSync(deviceId);
     });
-
-    /* ── Mode switch ── */
-    function setMode(newMode) {
-      if (mode === newMode) return;
-      mode = newMode;
-      modeWheelBtn.classList.toggle("active", mode === "wheel");
-      modeLotteryBtn.classList.toggle("active", mode === "lottery");
-      wheelWrap.classList.toggle("mode-hidden", mode !== "wheel");
-      lotteryWrap.classList.toggle("mode-hidden", mode !== "lottery");
-      pointer.style.display = mode === "wheel" ? "" : "none";
-      resultText.textContent = mode === "wheel" ? "まだ回していません" : "まだ引いていません";
-      hideResultOverlay();
-      render();
-    }
-
-    modeWheelBtn.addEventListener("click", () => setMode("wheel"));
-    modeLotteryBtn.addEventListener("click", () => setMode("lottery"));
 
     /* ── Sound ── */
     let soundEnabled = true;
@@ -1113,82 +943,6 @@
       ctx.fillText(label, x, y);
     }
 
-    /* ── Lottery box drawing ── */
-    function renderLotteryBox() {
-      lotteryPapers.innerHTML = "";
-      const vl = visibleLabels();
-
-      if (items.length === 0) {
-        lotteryHint.textContent = "候補を追加してください";
-        lotteryHint.style.display = "";
-        return;
-      }
-      if (vl.length === 0) {
-        lotteryHint.textContent = "すべて引き終わりました";
-        lotteryHint.style.display = "";
-        return;
-      }
-      lotteryHint.style.display = "none";
-
-      vl.forEach(() => {
-        const paper = document.createElement("div");
-        paper.className = "lottery-paper";
-        const leftPct = 6 + Math.random() * 84;
-        const rot     = (Math.random() * 26 - 13).toFixed(1);
-        const h       = 62 + Math.random() * 28;
-        paper.style.left      = leftPct + "%";
-        paper.style.height    = h + "px";
-        paper.style.transform = `translateX(-50%) rotate(${rot}deg)`;
-        paper.style.zIndex    = String(Math.floor(Math.random() * 10) + 2);
-        paper.addEventListener("click", () => drawLottery(paper));
-        lotteryPapers.appendChild(paper);
-      });
-    }
-
-    function drawRandomLotteryPaper() {
-      const papers = Array.from(lotteryPapers.children);
-      if (papers.length === 0) return;
-      drawLottery(papers[Math.floor(Math.random() * papers.length)]);
-    }
-
-    function drawLottery(paperEl) {
-      const vl = visibleLabels();
-      if (spinning || vl.length === 0) return;
-      spinning = true;
-      renderItems();
-      Array.from(lotteryPapers.children).forEach(p => { p.style.pointerEvents = "none"; });
-
-      const selected = Math.floor(Math.random() * vl.length);
-      const label    = vl[selected];
-
-      resultText.textContent = "引いています...";
-      playTick(1);
-
-      paperEl.classList.add("drawn");
-      const currentLeft = paperEl.style.left;
-      paperEl.style.transform = "translateX(-50%) rotate(0deg) translateY(-120px)";
-
-      const span = document.createElement("span");
-      span.className = "lottery-paper-text";
-      span.textContent = label;
-      paperEl.appendChild(span);
-
-      setTimeout(() => {
-        resultText.textContent = label;
-        playFanfare();
-        launchConfetti();
-        showResultOverlay(label, false);
-
-        const target = items.find(i => i.label === label && i.visible);
-        if (target) target.visible = false;
-        syncBulkInput();
-        queueSave();
-
-        spinning = false;
-        render();
-      }, 650);
-    }
-
     function renderItems() {
       itemsEl.innerHTML = "";
       items.forEach((item, index) => {
@@ -1242,16 +996,12 @@
       });
 
       const vl = visibleLabels();
-      const disabled = spinning || (mode === "wheel" ? vl.length < 2 : vl.length < 1);
+      const disabled = vl.length < 2 || spinning;
       spinButton.disabled = disabled;
       hubSpin.disabled    = disabled;
     }
 
-    function render() {
-      renderItems();
-      drawWheel();
-      if (mode === "lottery") renderLotteryBox();
-    }
+    function render() { renderItems(); drawWheel(); }
 
     function getItemsFromText(value) {
       return value
@@ -1393,17 +1143,43 @@
         }
 
         const reverseDuration = 1200 + overshootSlots * 200;
-        const reverseBackDeg  = overshootOffset;
 
-        function hermiteReverse(t) {
-          const t2 = t * t, t3 = t2 * t;
-          const disp = -reverseBackDeg; // 逆回転
-          return (t3 - 2*t2 + t) * 0 + (-2*t3 + 3*t2) * disp;
+        // ── 反転チェーン ──
+        // 1回目の反転(必ず): 行き過ぎ → 逆回転
+        // 2回目の反転(1/2):  逆回転で目標を通り過ぎ → 再び正回転で戻る
+        // 3回目の反転(1/2):  正回転で行き過ぎ → 超高速で逆回転して着地
+        const stage2 = Math.random() < 0.5;
+        const stage3 = stage2 && Math.random() < 0.5;
+        const targetRot = decelEndRot1 - overshootOffset;
+        const easeInOut = t => t < 0.5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3) / 2;
+        const easeOut   = t => 1 - Math.pow(1 - t, 3);
+        const segs = [];
+        let segCur = decelEndRot1;
+        function addSeg(to, dur, ease, fast = false) {
+          segs.push({ from: segCur, to, dur, ease, fast });
+          segCur = to;
         }
+
+        if (!stage2) {
+          addSeg(targetRot, reverseDuration, easeInOut);
+        } else {
+          const k2 = 1 + Math.floor(Math.random() * 2);
+          addSeg(targetRot - k2 * sliceDeg, reverseDuration, easeInOut);
+          if (!stage3) {
+            addSeg(targetRot, 1000 + k2 * 150, easeInOut);
+          } else {
+            const k3 = 1 + Math.floor(Math.random() * 2);
+            addSeg(targetRot + k3 * sliceDeg, 900 + k3 * 150, easeInOut);
+            // 超高速で逆回転(12回転)して目標に着地
+            addSeg(targetRot - 360 * 12, 3400, easeOut, true);
+          }
+        }
+        const segTotal = segs.reduce((a, g) => a + g.dur, 0);
+        const finalRot = segCur;
 
         const startTime = performance.now();
         let lastAngle   = rotation % 360;
-        let phase2Start = null;
+        let inFast      = false;
 
         function loop(now) {
           const elapsed = now - startTime;
@@ -1415,9 +1191,16 @@
             const t = (elapsed - constDuration) / decelDuration1;
             currentRot = decelStartRot1 + hermiteDecel1(Math.min(t, 1));
           } else {
-            if (phase2Start === null) phase2Start = now;
-            const t2 = Math.min((now - phase2Start) / reverseDuration, 1);
-            currentRot = decelEndRot1 + hermiteReverse(t2);
+            let e = elapsed - totalDuration1;
+            currentRot = finalRot;
+            for (const g of segs) {
+              if (e < g.dur) {
+                currentRot = g.from + (g.to - g.from) * g.ease(e / g.dur);
+                inFast = g.fast;
+                break;
+              }
+              e -= g.dur;
+            }
           }
 
           canvas.style.transition = "none";
@@ -1433,8 +1216,8 @@
           if (currIdx !== prevIdx) {
             const intensity = elapsed < constDuration
               ? 1.0
-              : phase2Start !== null
-                ? 0.3
+              : elapsed >= totalDuration1
+                ? (inFast ? 0.8 : 0.3)
                 : Math.max(0.2, 1 - (elapsed - constDuration) / decelDuration1);
             playTick(intensity);
             pointer.classList.add("tick");
@@ -1442,14 +1225,13 @@
           }
           lastAngle = currentAngle;
 
-          const done = phase2Start !== null && (now - phase2Start) >= reverseDuration;
+          const done = elapsed >= totalDuration1 + segTotal;
 
           if (!done) {
             spinRaf = requestAnimationFrame(loop);
           } else {
-            const finalRot = decelEndRot1 - reverseBackDeg;
             canvas.style.transform = `rotate(${finalRot}deg)`;
-            rotation = finalRot;
+            rotation = ((finalRot % 360) + 360) % 360;
             spinning = false;
             resultText.textContent = vl[selected];
             renderItems();
@@ -1469,10 +1251,8 @@
       document.body.classList.remove("result-open");
     }
 
-    function showResultOverlay(value, showHideButton = true) {
+    function showResultOverlay(value) {
       bigResultText.textContent = value;
-      overlayHideBtn.style.display = showHideButton ? "" : "none";
-      overlayCloseBtn.style.gridColumn = showHideButton ? "" : "1 / -1";
       overlayHideBtn.textContent = "非表示にする";
       overlayHideBtn.disabled = false;
       resultOverlay.classList.add("is-visible");
@@ -1503,19 +1283,15 @@
       const newLabels = getItemsFromText(bulkItems.value);
       const oldMap = new Map(items.map(i => [i.label, i.visible]));
       items = newLabels.map(l => ({ label: l, visible: oldMap.has(l) ? oldMap.get(l) : true }));
-      resultText.textContent = mode === "wheel" ? "まだ回していません" : "まだ引いていません";
+      resultText.textContent = "まだ回していません";
       hideResultOverlay();
-      render();
+      renderItems();
+      drawWheel();
       queueSave();
     });
 
-    spinButton.addEventListener("click", () => {
-      if (mode === "wheel") spin();
-      else drawRandomLotteryPaper();
-    });
-    hubSpin.addEventListener("click", () => {
-      if (mode === "wheel") spin();
-    });
+    spinButton.addEventListener("click", spin);
+    hubSpin.addEventListener("click", spin);
 
     createRouletteButton.addEventListener("click", () => {
       createRoulette(newRouletteName.value);
@@ -1525,7 +1301,7 @@
 
     rouletteSelect.addEventListener("change", () => {
       activeId = rouletteSelect.value;
-      resultText.textContent = mode === "wheel" ? "まだ回していません" : "まだ引いていません";
+      resultText.textContent = "まだ回していません";
       hideResultOverlay();
       rotation = 0;
       canvas.style.transform = "rotate(0deg)";
